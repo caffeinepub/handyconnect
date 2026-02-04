@@ -1,0 +1,70 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-04T12:35:52.701Z",
+  "summary": "Diff adds a Motoko backend actor with types and query/mutation endpoints for user profiles, worker profiles, browsing, and bookings (truncated), plus a React+TS frontend using TanStack Router + React Query + Internet Identity hooks, role/account-type guards, navigation, and UI components for worker discovery and bookings. Some requested behaviors cannot be fully verified due to truncation/omitted files, so only clear gaps/extras are reported.",
+  "missing_requirements": [
+    {
+      "id": "REQ-14",
+      "requirement": "Booking captures timestamps (created/updated or similar) as part of the persisted booking record.",
+      "reason": "The backend Booking type shown contains id, client, worker, dateTime, jobDetails, location, and status, but no timestamp fields are present in the visible portion of backend/main.mo.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Backend access-control initialization via a secret admin token in the URL (caffeineAdminToken) and calling an internal _initializeAccessControlWithSecret method.",
+      "reason": "BuildRequest does not request an admin-token mechanism or URL-parameter-based privileged initialization; it only requests Internet Identity auth + role onboarding and authorization checks for user-owned data.",
+      "evidence": [
+        "frontend/src/hooks/useActor.ts",
+        "backend/main.mo"
+      ]
+    },
+    {
+      "description": "Footer branding/link 'Built with ❤️ using caffeine.ai'.",
+      "reason": "BuildRequest does not request external branding, and the heart emoji is additional user-facing content beyond the specified MVP scope.",
+      "evidence": [
+        "frontend/src/components/layout/AppShell.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.62,
+  "changed_files": [
+    "all_files_summary.json",
+    "backend/main.mo",
+    "frontend-file-summaries.txt",
+    "frontend/index.css",
+    "frontend/index.html",
+    "frontend/src/App.tsx",
+    "frontend/src/components/auth/AccessDeniedScreen.tsx",
+    "frontend/src/components/auth/RequireAccountType.tsx",
+    "frontend/src/components/auth/RequireAuth.tsx",
+    "frontend/src/components/auth/RequireRole.tsx",
+    "frontend/src/components/bookings/BookingList.tsx",
+    "frontend/src/components/bookings/BookingStatusBadge.tsx",
+    "frontend/src/components/bookings/CreateBookingForm.tsx",
+    "frontend/src/components/layout/AppShell.tsx",
+    "frontend/src/components/nav/TopNav.tsx",
+    "frontend/src/components/workers/WorkerCard.tsx",
+    "frontend/src/components/workers/WorkerProfileForm.tsx",
+    "frontend/src/hooks/useAccountType.ts",
+    "frontend/src/hooks/useActor.ts",
+    "frontend/src/hooks/useInternetIdentity.ts",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/index.css",
+    "frontend/src/main.tsx",
+    "frontend/src/pages/BookingDetail.tsx",
+    "frontend/src/pages/BrowseWorkers.tsx",
+    "frontend/src/pages/ClientDashboard.tsx",
+    "frontend/src/pages/OnboardingAccountType.tsx",
+    "frontend/src/pages/SignIn.tsx",
+    "frontend/src/pages/WorkerDashboard.tsx",
+    "frontend/src/pages/WorkerDetail.tsx",
+    "frontend/src/pages/WorkerProfile.tsx",
+    "frontend/src/utils/urlParams.ts",
+    "frontend/tailwind.config.js",
+    "project_state.json"
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-create-a-coherent-handyconnect-visual-theme-colors-typography-spacing-component-styling-and-apply-it-consistently-across-all-screens-use-a-distinct-non-blue-non-purple-palette-suitable-for-a-local-services-marketplace-and-ensure-mobile-friendly-responsive-layouts",
+      "featureTitle": "Create a coherent HandyConnect visual theme (colors, typography, spacing, component styling) and apply it consistently across all screens. Use a distinct non-blue/non-purple palette suitable for a local services marketplace, and ensure mobile-friendly responsive layouts.",
+      "files": [
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/index.css",
+        "frontend/src/main.tsx",
+        "frontend/tailwind.config.js"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-10"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-internet-identity-authentication-and-a-minimal-onboarding-flow-that-after-first-sign-in-forces-the-user-to-choose-an-account-type-client-or-worker-persist-the-chosen-role-and-use-it-to-control-navigation-and-page-access",
+      "featureTitle": "Implement Internet Identity authentication and a minimal onboarding flow that, after first sign-in, forces the user to choose an account type: Client or Worker. Persist the chosen role and use it to control navigation and page access.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/RequireAccountType.tsx",
+        "frontend/src/components/auth/RequireAuth.tsx",
+        "frontend/src/components/auth/RequireRole.tsx",
+        "frontend/src/hooks/useAccountType.ts",
+        "frontend/src/pages/OnboardingAccountType.tsx",
+        "frontend/src/pages/SignIn.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-11"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-worker-profiles-workers-can-create-and-edit-their-profile-with-display-name-service-category-service-description-service-area-free-text-and-hourly-rate-store-profiles-in-the-backend-and-only-allow-the-owning-worker-to-edit-their-profile",
+      "featureTitle": "Implement Worker profiles. Workers can create and edit their profile with: display name, service category, service description, service area (free-text), and hourly rate. Store profiles in the backend and only allow the owning worker to edit their profile.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/workers/WorkerProfileForm.tsx",
+        "frontend/src/pages/WorkerProfile.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-12"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-worker-discovery-for-clients-a-browse-workers-view-that-lists-worker-profiles-and-supports-filtering-by-service-category-and-sorting-by-hourly-rate-ascending-descending-provide-a-worker-detail-view-reachable-from-the-list",
+      "featureTitle": "Implement worker discovery for clients: a Browse Workers view that lists worker profiles and supports filtering by service category and sorting by hourly rate (ascending/descending). Provide a worker detail view reachable from the list.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/workers/WorkerCard.tsx",
+        "frontend/src/pages/BrowseWorkers.tsx",
+        "frontend/src/pages/WorkerDetail.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-13"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-bookings-with-a-clear-status-lifecycle-clients-can-create-a-booking-request-for-a-selected-worker-with-requested-date-time-text-input-job-details-and-location-free-text-workers-can-accept-or-decline-clients-can-cancel-before-acceptance-persist-bookings-in-the-backend-and-restrict-access-so-only-the-client-and-the-selected-worker-can-view-booking-details",
+      "featureTitle": "Implement bookings with a clear status lifecycle. Clients can create a booking request for a selected worker with requested date/time (text input), job details, and location (free-text). Workers can accept or decline; clients can cancel before acceptance. Persist bookings in the backend and restrict access so only the client and the selected worker can view booking details.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/auth/AccessDeniedScreen.tsx",
+        "frontend/src/components/bookings/BookingStatusBadge.tsx",
+        "frontend/src/components/bookings/CreateBookingForm.tsx",
+        "frontend/src/pages/BookingDetail.tsx",
+        "frontend/src/pages/WorkerDetail.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-14"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-role-based-dashboards-client-dashboard-shows-upcoming-and-past-bookings-worker-dashboard-shows-profile-completion-status-and-bookings-grouped-by-status-e-g-requested-accepted-declined-cancelled-completed-if-included-in-lifecycle",
+      "featureTitle": "Add role-based dashboards. Client dashboard shows upcoming and past bookings. Worker dashboard shows profile completion status and bookings grouped by status (e.g., requested, accepted, declined, cancelled, completed if included in lifecycle).",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/bookings/BookingList.tsx",
+        "frontend/src/pages/ClientDashboard.tsx",
+        "frontend/src/pages/WorkerDashboard.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-15"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-basic-app-navigation-with-routes-for-browse-workers-my-bookings-client-requests-bookings-worker-and-profile-worker-navigation-links-and-route-access-must-adapt-based-on-the-signed-in-user-s-role-unauthenticated-users-should-be-directed-to-sign-in-onboarding-as-appropriate",
+      "featureTitle": "Add basic app navigation with routes for Browse Workers, My Bookings (client), Requests/Bookings (worker), and Profile (worker). Navigation links and route access must adapt based on the signed-in user’s role; unauthenticated users should be directed to sign-in/onboarding as appropriate.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/components/nav/TopNav.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-17"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-generate-and-include-static-image-assets-logo-and-hero-illustration-under-frontend-public-assets-generated-and-render-them-in-the-app-shell-e-g-header-branding-and-landing-browse-header-do-not-serve-these-images-through-the-backend",
+      "featureTitle": "Generate and include static image assets (logo and hero illustration) under frontend/public/assets/generated, and render them in the app shell (e.g., header branding and landing/browse header). Do not serve these images through the backend.",
+      "files": [
+        "frontend/src/components/nav/TopNav.tsx",
+        "frontend/src/pages/BrowseWorkers.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-18"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

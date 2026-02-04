@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 7,
+  "summary": "HandyConnect: web-based MVP (mobile-friendly web app) for local worker discovery and bookings, built within the platform constraints using a React web frontend and Motoko backend with Internet Identity authentication (no mobile-native, UPI, or real-time GPS tracking in this MVP).",
+  "existing_features": [
+    {
+      "id": "feature-create-a-coherent-handyconnect-visual-theme-colors-typography-spacing-component-styling-and-apply-it-consistently-across-all-screens-use-a-distinct-non-blue-non-purple-palette-suitable-for-a-local-services-marketplace-and-ensure-mobile-friendly-responsive-layouts",
+      "title": "Create a coherent HandyConnect visual theme (colors, typography, spacing, component styling) and apply it consistently across all screens. Use a distinct non-blue/non-purple palette suitable for a local services marketplace, and ensure mobile-friendly responsive layouts.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-internet-identity-authentication-and-a-minimal-onboarding-flow-that-after-first-sign-in-forces-the-user-to-choose-an-account-type-client-or-worker-persist-the-chosen-role-and-use-it-to-control-navigation-and-page-access",
+      "title": "Implement Internet Identity authentication and a minimal onboarding flow that, after first sign-in, forces the user to choose an account type: Client or Worker. Persist the chosen role and use it to control navigation and page access.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-worker-profiles-workers-can-create-and-edit-their-profile-with-display-name-service-category-service-description-service-area-free-text-and-hourly-rate-store-profiles-in-the-backend-and-only-allow-the-owning-worker-to-edit-their-profile",
+      "title": "Implement Worker profiles. Workers can create and edit their profile with: display name, service category, service description, service area (free-text), and hourly rate. Store profiles in the backend and only allow the owning worker to edit their profile.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-worker-discovery-for-clients-a-browse-workers-view-that-lists-worker-profiles-and-supports-filtering-by-service-category-and-sorting-by-hourly-rate-ascending-descending-provide-a-worker-detail-view-reachable-from-the-list",
+      "title": "Implement worker discovery for clients: a Browse Workers view that lists worker profiles and supports filtering by service category and sorting by hourly rate (ascending/descending). Provide a worker detail view reachable from the list.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-bookings-with-a-clear-status-lifecycle-clients-can-create-a-booking-request-for-a-selected-worker-with-requested-date-time-text-input-job-details-and-location-free-text-workers-can-accept-or-decline-clients-can-cancel-before-acceptance-persist-bookings-in-the-backend-and-restrict-access-so-only-the-client-and-the-selected-worker-can-view-booking-details",
+      "title": "Implement bookings with a clear status lifecycle. Clients can create a booking request for a selected worker with requested date/time (text input), job details, and location (free-text). Workers can accept or decline; clients can cancel before acceptance. Persist bookings in the backend and restrict access so only the client and the selected worker can view booking details.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-role-based-dashboards-client-dashboard-shows-upcoming-and-past-bookings-worker-dashboard-shows-profile-completion-status-and-bookings-grouped-by-status-e-g-requested-accepted-declined-cancelled-completed-if-included-in-lifecycle",
+      "title": "Add role-based dashboards. Client dashboard shows upcoming and past bookings. Worker dashboard shows profile completion status and bookings grouped by status (e.g., requested, accepted, declined, cancelled, completed if included in lifecycle).",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-basic-app-navigation-with-routes-for-browse-workers-my-bookings-client-requests-bookings-worker-and-profile-worker-navigation-links-and-route-access-must-adapt-based-on-the-signed-in-user-s-role-unauthenticated-users-should-be-directed-to-sign-in-onboarding-as-appropriate",
+      "title": "Add basic app navigation with routes for Browse Workers, My Bookings (client), Requests/Bookings (worker), and Profile (worker). Navigation links and route access must adapt based on the signed-in user’s role; unauthenticated users should be directed to sign-in/onboarding as appropriate.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-generate-and-include-static-image-assets-logo-and-hero-illustration-under-frontend-public-assets-generated-and-render-them-in-the-app-shell-e-g-header-branding-and-landing-browse-header-do-not-serve-these-images-through-the-backend",
+      "title": "Generate and include static image assets (logo and hero illustration) under frontend/public/assets/generated, and render them in the app shell (e.g., header branding and landing/browse header). Do not serve these images through the backend.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create a coherent HandyConnect visual theme and apply it consistently across the app (colors, typography, spacing, component styling). Choose a distinct non-blue/non-purple palette suitable for a local services marketplace.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add Internet Identity sign-in and a minimal onboarding flow that lets a signed-in user choose an account type: Client or Worker.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Implement Worker profiles: workers can create/edit a profile with display name, service category, service description, service area (free-text), and hourly rate.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Implement worker discovery for clients: a public/browse view that lists workers and supports filtering by service category and sorting by hourly rate (ascending/descending).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Implement bookings: clients can create a booking request for a selected worker with requested date/time (as text input), job details, and location (free-text). Workers can accept or decline; clients can cancel before acceptance. Track booking status lifecycle.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add basic dashboards: Client dashboard shows upcoming/past bookings; Worker dashboard shows profile completion status and a list of bookings grouped by status.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Provide backend data persistence in the single Motoko actor for users (role), worker profiles, and bookings, with authorization checks ensuring only owners can mutate their records and only involved parties can view booking details.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Add basic app navigation (top nav or sidebar) with routes for Browse Workers, My Bookings (client), Requests/Bookings (worker), and Profile (worker), adjusting visible links based on account type.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Render generated static image assets (logo and hero illustration) from frontend/public/assets/generated and use them in the app shell (e.g., header branding and landing/browse header).",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Add worker verification and richer profiles, including portfolio/work gallery uploads and service category selection.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Implement availability management: interactive calendar/time-slot availability, status toggle (Available/Busy/Offline), service radius configuration, and custom pricing per service.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Enhance booking system with ratings/reviews in discovery, location-based search, availability-based slot selection, and appointment reminders/notifications.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Add real-time location tracking during active jobs with ETA calculation, privacy controls, and optional geofencing for service areas.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Integrate payments with UPI and other methods, including payment history/receipts and an escrow/dispute resolution flow.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Add in-app communication: messaging/calling with privacy protection and photo/video sharing for job clarification.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Add complaint resolution channel plus review & rating system for workers and clients.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Add worker-side scheduling & management features: job history tracking, invoice generation, and performance analytics dashboard.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Add push notifications (and optional SMS/Email) for booking updates, reminders, and other key events.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Add offline functionality for basic features to handle low connectivity scenarios.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Add multi-language support.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Add monetization features: commission per booking, premium subscriptions for workers, featured listings, and ads support.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Implement backend persistence in the single Motoko actor for: user role, worker profiles, and bookings. Add authorization checks ensuring only owners can mutate their records and only involved parties can view booking data. Provide stable, queryable endpoints for the frontend to fetch lists and details needed by the UI.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "status": "pending"
+    }
+  ],
+  "architectural_notes": [
+    "Image/media storage proposed via AWS S3 or Firebase.",
+    "Platform constraint confirmed: build as React (web) frontend + Motoko canister backend on ICP with Internet Identity; avoid React Native, Node/Express, MongoDB/Redis, WebSockets/Socket.io, Google Maps live tracking, UPI payments, and push/SMS in this MVP."
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "imageRequirements": "## Required Images\n- Flat, friendly wordmark logo with a simple tool/handshake motif in warm earthy colors (handyconnect-logo.dim_512x512.png)\n- Wide hero illustration showing a homeowner and local worker meeting with tools, clean modern vector style, warm palette (handyconnect-hero.dim_1600x600.png)",
+  "generatedImages": [
+    {
+      "filename": "handyconnect-logo.dim_512x512.png",
+      "description": "Flat, friendly wordmark logo with a simple tool/handshake motif in warm earthy colors",
+      "targetWidth": 512,
+      "targetHeight": 512
+    },
+    {
+      "filename": "handyconnect-hero.dim_1600x600.png",
+      "description": "Wide hero illustration showing a homeowner and local worker meeting with tools, clean modern vector style, warm palette",
+      "targetWidth": 1600,
+      "targetHeight": 600
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "HandyConnect",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

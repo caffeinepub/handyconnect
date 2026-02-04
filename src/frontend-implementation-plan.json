@@ -1,0 +1,295 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "HandyConnect Web MVP (Worker Discovery + Bookings) — Frontend Plan",
+  "requirements": [
+    {
+      "id": "REQ-10",
+      "summary": "Define a coherent HandyConnect visual theme (non-blue/non-purple, mobile-responsive) and apply it consistently across screens.",
+      "acceptanceCriteria": [
+        "All primary pages share consistent typography scale, spacing, and component styling",
+        "Theme palette does not rely on blue or purple as primary brand colors",
+        "Core layouts work on mobile widths (~360px) and desktop widths"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/index.css",
+          "operation": "create",
+          "description": "Create the global Tailwind entry stylesheet (imported by the app) defining HandyConnect theme tokens (warm earthy palette), base typography, and shared layout utilities."
+        },
+        {
+          "path": "frontend/src/main.tsx",
+          "operation": "modify",
+          "description": "Ensure the app imports the correct global stylesheet (frontend/src/index.css) so the theme is applied consistently across all screens."
+        },
+        {
+          "path": "frontend/tailwind.config.js",
+          "operation": "modify",
+          "description": "Adjust Tailwind theme extensions (if needed) to align with the warm, earthy (non-blue/non-purple) palette and consistent radius/spacing usage."
+        },
+        {
+          "path": "frontend/src/components/layout/AppShell.tsx",
+          "operation": "create",
+          "description": "Create an app shell layout component to enforce consistent spacing, max-width container behavior, responsive header area, and page structure across all authenticated screens."
+        }
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "summary": "Add Internet Identity sign-in/out and a minimal onboarding flow that forces choosing Client or Worker on first sign-in; persist and use role to control navigation and access.",
+      "acceptanceCriteria": [
+        "User can sign in/out with Internet Identity",
+        "On first sign-in, user is prompted to choose Client or Worker before accessing role-based pages",
+        "Chosen role persists across refresh and re-login",
+        "Role-based routes/links are hidden or blocked when not applicable"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useCurrentUserProfile.ts",
+          "operation": "create",
+          "description": "Create a React Query hook that fetches the caller user profile and supports saving updates. Use the selected \"authorization\" component guidance for avoiding onboarding modal flash; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useAccountType.ts",
+          "operation": "create",
+          "description": "Create a small helper hook to derive the signed-in user's account type (Client/Worker) from the stored user profile and expose loading/ready states for route guards."
+        },
+        {
+          "path": "frontend/src/pages/SignIn.tsx",
+          "operation": "create",
+          "description": "Create a sign-in screen that uses Internet Identity to login/logout and explains that users must sign in to use HandyConnect. Use the selected \"authorization\" component’s frontend authentication guidance; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/OnboardingAccountType.tsx",
+          "operation": "create",
+          "description": "Create the onboarding screen shown after first sign-in (or when accountType is missing) that forces choosing Client or Worker and persists it via saving the user profile. Use the selected \"authorization\" component’s onboarding/profile setup guidance; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/auth/RequireAuth.tsx",
+          "operation": "create",
+          "description": "Create a guard component that redirects unauthenticated users to Sign In and blocks access to application data until authenticated (per \"authorization\" component guidance). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/auth/RequireAccountType.tsx",
+          "operation": "create",
+          "description": "Create a guard that enforces onboarding completion (accountType chosen) before allowing navigation to role-based pages; redirects to Onboarding when missing."
+        },
+        {
+          "path": "frontend/src/components/auth/RequireRole.tsx",
+          "operation": "create",
+          "description": "Create a role-based guard that blocks/redirects when a signed-in user attempts to access role-inappropriate routes (Client-only vs Worker-only)."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "create",
+          "description": "Implement the top-level app composition: create router structure, wire SignIn + Onboarding flows, and apply auth/accountType/role guards so first login forces account type selection and role controls navigation/page access."
+        }
+      ]
+    },
+    {
+      "id": "REQ-12",
+      "summary": "Implement Worker profiles UI: workers can create/edit profile fields; clients cannot edit; workers see saved profile after refresh.",
+      "acceptanceCriteria": [
+        "Worker can create/update profile fields: display name, category, description, service area text, hourly rate",
+        "Client users cannot edit worker profiles",
+        "A worker sees their saved profile after refresh"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useWorkerProfile.ts",
+          "operation": "create",
+          "description": "Create React Query hooks for fetching the current worker's profile and saving updates (create/update), and for fetching another worker's profile for detail views."
+        },
+        {
+          "path": "frontend/src/components/workers/WorkerProfileForm.tsx",
+          "operation": "create",
+          "description": "Create a reusable Worker Profile form component (display name, category, description, service area, hourly rate, active toggle) composed from existing shadcn/ui components (do not edit ui components). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/WorkerProfile.tsx",
+          "operation": "create",
+          "description": "Create the worker Profile page to view/edit the signed-in worker’s profile, using role guards to ensure only Worker account type can access it."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wire the worker Profile route into the router and ensure it is protected by RequireAuth + RequireAccountType + RequireRole(Worker)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "summary": "Implement client worker discovery: Browse Workers list with category filter + hourly rate sorting, and a worker detail view from the list.",
+      "acceptanceCriteria": [
+        "Client can view a list of workers with key info (name, category, area text, hourly rate)",
+        "Client can filter the list by service category",
+        "Client can sort by hourly rate ascending/descending",
+        "Clicking a worker opens a detail view showing full profile"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useBrowseWorkers.ts",
+          "operation": "create",
+          "description": "Create React Query hooks for browsing workers, filtering by service category, and sorting by hourly rate (asc/desc) using available backend functions."
+        },
+        {
+          "path": "frontend/src/components/workers/WorkerCard.tsx",
+          "operation": "create",
+          "description": "Create a Worker card component to display key info (name, category, area text, hourly rate) with a link/button to open the worker detail view; compose from shadcn/ui components. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/BrowseWorkers.tsx",
+          "operation": "create",
+          "description": "Create the Browse Workers page: category filter controls, rate sorting controls, responsive list/grid of WorkerCard items, and a browse header area that can include the hero image (wired in REQ-18)."
+        },
+        {
+          "path": "frontend/src/pages/WorkerDetail.tsx",
+          "operation": "create",
+          "description": "Create a Worker detail page reachable from Browse Workers, showing the full worker profile and providing an entry point to create a booking request (wired in REQ-14)."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wire Browse Workers and Worker Detail routes into the router and apply role-based guards so clients can browse and view details."
+        }
+      ]
+    },
+    {
+      "id": "REQ-14",
+      "summary": "Implement bookings UI with status lifecycle: clients create requests from worker detail; workers accept/decline; clients cancel before acceptance; only involved parties can view details (UI-side handling).",
+      "acceptanceCriteria": [
+        "Client can create a booking request from a worker detail page",
+        "Booking captures: worker, client, requested date/time text, job details, location text, status, timestamps",
+        "Worker can accept or decline a requested booking",
+        "Client can cancel only while booking is still unaccepted",
+        "Only the involved client and worker can view the booking details; other users cannot"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useBookings.ts",
+          "operation": "create",
+          "description": "Create React Query hooks for creating booking requests, fetching booking lists for dashboards, fetching booking details, and performing status transitions (accept/decline/cancel) with cache invalidation."
+        },
+        {
+          "path": "frontend/src/components/bookings/CreateBookingForm.tsx",
+          "operation": "create",
+          "description": "Create a booking request form (requested date/time text, job details, location) composed from shadcn/ui components and validated client-side for required fields. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/bookings/BookingStatusBadge.tsx",
+          "operation": "create",
+          "description": "Create a small UI component to display booking status consistently (requested/accepted/declined/cancelled/completed) using the app theme tokens."
+        },
+        {
+          "path": "frontend/src/pages/BookingDetail.tsx",
+          "operation": "create",
+          "description": "Create a booking detail page that shows booking fields and available actions based on role and status (worker accept/decline; client cancel only while requested). Handle authorization failures gracefully (e.g., show Access Denied if backend rejects)."
+        },
+        {
+          "path": "frontend/src/pages/WorkerDetail.tsx",
+          "operation": "modify",
+          "description": "Add the Create Booking entry point on the worker detail page (inline form or link to a booking request section) for Client role users."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wire the Booking Detail route into the router and protect it with RequireAuth + RequireAccountType. Apply role guards so only relevant users can navigate there, and ensure UI handles forbidden reads by redirecting/showing an access denied screen."
+        },
+        {
+          "path": "frontend/src/components/auth/AccessDeniedScreen.tsx",
+          "operation": "create",
+          "description": "Create a simple access denied screen to display when authorization errors occur while fetching restricted booking data (per selected \"authorization\" component error-handling guidance). Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-15",
+      "summary": "Add role-based dashboards: client shows upcoming/past bookings; worker shows profile completion status and bookings grouped by status.",
+      "acceptanceCriteria": [
+        "Client dashboard displays a list of bookings separated into upcoming vs past using status and/or timestamps",
+        "Worker dashboard shows whether required profile fields are completed",
+        "Worker dashboard groups bookings by status and provides quick access to booking details/actions"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/bookings/BookingList.tsx",
+          "operation": "create",
+          "description": "Create a reusable booking list component with empty/loading states, grouped sections, and links to booking detail; compose from shadcn/ui components. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/ClientDashboard.tsx",
+          "operation": "create",
+          "description": "Create the Client dashboard page that fetches the client’s bookings and separates them into upcoming vs past based on status and/or date/time text heuristics where possible (with clear labeling)."
+        },
+        {
+          "path": "frontend/src/pages/WorkerDashboard.tsx",
+          "operation": "create",
+          "description": "Create the Worker dashboard page that shows profile completion status (required fields filled) and bookings grouped by status with quick actions/links."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wire dashboard routes into the router and protect them with RequireAuth + RequireAccountType + RequireRole for the correct account type."
+        }
+      ]
+    },
+    {
+      "id": "REQ-17",
+      "summary": "Add basic navigation with role-adaptive routes/links: Browse Workers, My Bookings (client), Requests/Bookings (worker), Profile (worker); block/redirect role-inappropriate direct URL access; unauthenticated users directed to sign-in/onboarding.",
+      "acceptanceCriteria": [
+        "Top-level navigation is present on main authenticated pages",
+        "Client sees Browse Workers + My Bookings; Worker sees Requests/Bookings + Profile (and optionally Browse Workers if desired, but role-based visibility is enforced)",
+        "Direct URL access to role-inappropriate routes is blocked or redirected"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/nav/TopNav.tsx",
+          "operation": "create",
+          "description": "Create a top navigation component that adapts visible links based on authentication + chosen account type (Client/Worker) and provides sign out. Use the selected \"authorization\" component’s sign-out guidance (clear cached data) at the UI integration points; verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/layout/AppShell.tsx",
+          "operation": "modify",
+          "description": "Integrate TopNav into the app shell so authenticated pages share consistent navigation and responsive layout."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Ensure all navigable pages are registered as routes, apply RequireAuth/RequireAccountType/RequireRole guards, and implement redirects for unauthenticated users to SignIn and for missing accountType to Onboarding."
+        }
+      ]
+    },
+    {
+      "id": "REQ-18",
+      "summary": "Include generated static logo + hero assets under frontend/public/assets/generated and render them in the app shell and browse header (no backend image serving).",
+      "acceptanceCriteria": [
+        "Generated images exist at frontend/public/assets/generated with the specified filenames",
+        "Header/brand area displays the logo image",
+        "Browse/Landing header area displays the hero illustration",
+        "Images are loaded as static frontend assets (no backend image endpoints)"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/public/assets/generated/handyconnect-logo.dim_512x512.png",
+          "operation": "create",
+          "description": "Add the generated static logo asset at the exact required path and filename."
+        },
+        {
+          "path": "frontend/public/assets/generated/handyconnect-hero.dim_1600x600.png",
+          "operation": "create",
+          "description": "Add the generated static hero illustration asset at the exact required path and filename."
+        },
+        {
+          "path": "frontend/src/components/nav/TopNav.tsx",
+          "operation": "modify",
+          "description": "Render the logo image from frontend/public/assets/generated/handyconnect-logo.dim_512x512.png in the header brand area."
+        },
+        {
+          "path": "frontend/src/pages/BrowseWorkers.tsx",
+          "operation": "modify",
+          "description": "Render the hero illustration from frontend/public/assets/generated/handyconnect-hero.dim_1600x600.png in the browse/landing header area, ensuring responsive behavior on mobile and desktop."
+        }
+      ]
+    }
+  ]
+}
