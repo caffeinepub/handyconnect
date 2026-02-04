@@ -1,11 +1,46 @@
-<html lang='en'>
-    <head>
-        <meta charset='UTF-8' />
-        <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-        <title>HandyConnect</title>
-    </head>
-    <body>
-        <div id='root'></div>
-        <script type='module' src='/src/main.tsx'></script>
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Connect with skilled workers for home services" />
+    <meta name="theme-color" content="#d97757" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/generated/pwa-icon-192.dim_192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/generated/pwa-icon-512.dim_512x512.png" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="/assets/generated/pwa-icon-192.dim_192x192.png" />
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="HandyConnect" />
+    
+    <title>HandyConnect</title>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(registration => {
+              console.log('Service Worker registered:', registration.scope);
+            })
+            .catch(error => {
+              console.error('Service Worker registration failed:', error);
+            });
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

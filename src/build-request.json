@@ -1,202 +1,77 @@
 {
   "kind": "build_request",
-  "title": "HandyConnect Web MVP (Worker Discovery + Bookings)",
+  "title": "Convert HandyConnect into an installable PWA",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-10",
-      "text": "Create a coherent HandyConnect visual theme (colors, typography, spacing, component styling) and apply it consistently across all screens. Use a distinct non-blue/non-purple palette suitable for a local services marketplace, and ensure mobile-friendly responsive layouts.",
+      "id": "REQ-19",
+      "text": "Add a Web App Manifest for HandyConnect and wire it into the app so the site is recognized as a PWA (name, short_name, start_url, display=standalone, theme_color, background_color, icons).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Build the HandyConnect web MVP"
+          "Make it a PWA"
         ]
       },
       "acceptanceCriteria": [
-        "All primary pages share consistent typography scale, spacing, and component styling",
-        "Theme palette does not rely on blue or purple as primary brand colors",
-        "Core layouts work on mobile widths (~360px) and desktop widths"
+        "A manifest file is present in the frontend static assets and is linked from the HTML entry point.",
+        "The manifest includes at least 192x192 and 512x512 icons and is valid JSON.",
+        "On Android Chrome, the site is eligible for \"Add to Home screen\" / \"Install app\"."
       ]
     },
     {
-      "id": "REQ-11",
-      "text": "Implement Internet Identity authentication and a minimal onboarding flow that, after first sign-in, forces the user to choose an account type: Client or Worker. Persist the chosen role and use it to control navigation and page access.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Build the HandyConnect web MVP"
-        ]
-      },
-      "acceptanceCriteria": [
-        "User can sign in/out with Internet Identity",
-        "On first sign-in, user is prompted to choose Client or Worker before accessing role-based pages",
-        "Chosen role persists across refresh and re-login",
-        "Role-based routes/links are hidden or blocked when not applicable"
-      ]
-    },
-    {
-      "id": "REQ-12",
-      "text": "Implement Worker profiles. Workers can create and edit their profile with: display name, service category, service description, service area (free-text), and hourly rate. Store profiles in the backend and only allow the owning worker to edit their profile.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Create an app for local workers such as plumbers, electricians, painters, carpenters, and other daily workers."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Worker can create/update profile fields: display name, category, description, service area text, hourly rate",
-        "Client users cannot edit worker profiles",
-        "A worker sees their saved profile after refresh"
-      ]
-    },
-    {
-      "id": "REQ-13",
-      "text": "Implement worker discovery for clients: a Browse Workers view that lists worker profiles and supports filtering by service category and sorting by hourly rate (ascending/descending). Provide a worker detail view reachable from the list.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Worker and Client roles",
-          "Browse workers + filters"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Client can view a list of workers with key info (name, category, area text, hourly rate)",
-        "Client can filter the list by service category",
-        "Client can sort by hourly rate ascending/descending",
-        "Clicking a worker opens a detail view showing full profile"
-      ]
-    },
-    {
-      "id": "REQ-14",
-      "text": "Implement bookings with a clear status lifecycle. Clients can create a booking request for a selected worker with requested date/time (text input), job details, and location (free-text). Workers can accept or decline; clients can cancel before acceptance. Persist bookings in the backend and restrict access so only the client and the selected worker can view booking details.",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "make bookings for the next works and appointments",
-          "Booking requests with status flow"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Client can create a booking request from a worker detail page",
-        "Booking captures: worker, client, requested date/time text, job details, location text, status, timestamps",
-        "Worker can accept or decline a requested booking",
-        "Client can cancel only while booking is still unaccepted",
-        "Only the involved client and worker can view the booking details; other users cannot"
-      ]
-    },
-    {
-      "id": "REQ-15",
-      "text": "Add role-based dashboards. Client dashboard shows upcoming and past bookings. Worker dashboard shows profile completion status and bookings grouped by status (e.g., requested, accepted, declined, cancelled, completed if included in lifecycle).",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Dashboards for workers and clients"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Client dashboard displays a list of bookings separated into upcoming vs past using status and/or timestamps",
-        "Worker dashboard shows whether required profile fields are completed",
-        "Worker dashboard groups bookings by status and provides quick access to booking details/actions"
-      ]
-    },
-    {
-      "id": "REQ-16",
-      "text": "Implement backend persistence in the single Motoko actor for: user role, worker profiles, and bookings. Add authorization checks ensuring only owners can mutate their records and only involved parties can view booking data. Provide stable, queryable endpoints for the frontend to fetch lists and details needed by the UI.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "Provide backend data persistence in the single Motoko actor for users (role), worker profiles, and bookings, with authorization checks"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Data persists across page refresh and subsequent sessions",
-        "Unauthorized updates are rejected (e.g., client cannot edit worker profile; unrelated principal cannot read booking details)",
-        "Backend exposes methods needed for: role get/set, profile CRUD (worker-owned), browse/search list, booking create and state transitions"
-      ]
-    },
-    {
-      "id": "REQ-17",
-      "text": "Add basic app navigation with routes for Browse Workers, My Bookings (client), Requests/Bookings (worker), and Profile (worker). Navigation links and route access must adapt based on the signed-in user’s role; unauthenticated users should be directed to sign-in/onboarding as appropriate.",
+      "id": "REQ-20",
+      "text": "Implement a service worker that enables app-shell offline support by precaching the built static assets and serving the SPA entry (index.html) for navigation requests; include an offline fallback for uncached requests when the user is offline.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Add basic app navigation ... adjusting visible links based on account type"
+          "Make it a PWA"
         ]
       },
       "acceptanceCriteria": [
-        "Top-level navigation is present on main authenticated pages",
-        "Client sees Browse Workers + My Bookings; Worker sees Requests/Bookings + Profile (and optionally Browse Workers if desired, but role-based visibility is enforced)",
-        "Direct URL access to role-inappropriate routes is blocked or redirected"
+        "A service worker file exists in frontend static assets and is registered by the app (without modifying immutable files).",
+        "After the first load, the app can be reopened while offline and renders the app shell (or an explicit offline fallback page) instead of a browser error.",
+        "Navigation to client-side routes while offline returns the SPA entry (index.html) rather than a network 404."
       ]
     },
     {
-      "id": "REQ-18",
-      "text": "Generate and include static image assets (logo and hero illustration) under frontend/public/assets/generated, and render them in the app shell (e.g., header branding and landing/browse header). Do not serve these images through the backend.",
+      "id": "REQ-21",
+      "text": "Update the HTML entry point to include required PWA metadata (manifest link, theme-color meta, and any necessary Apple PWA meta tags) and to register the service worker at runtime (without editing frontend/src/main.tsx or other immutable paths).",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "Render generated static image assets (logo and hero illustration) from frontend/public/assets/generated"
+          "Make it a PWA"
         ]
       },
       "acceptanceCriteria": [
-        "Generated images exist at frontend/public/assets/generated with the specified filenames",
-        "Header/brand area displays the logo image",
-        "Browse/Landing header area displays the hero illustration",
-        "Images are loaded as static frontend assets (no backend image endpoints)"
+        "frontend/index.html includes a <link rel=\"manifest\"> and a theme-color meta tag consistent with the app theme.",
+        "Service worker registration occurs from a non-immutable file (e.g., index.html) and succeeds in production builds.",
+        "PWA install prompt eligibility is achieved in Lighthouse (Installable criteria met)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor with all logic in backend/main.mo; only add backend/migration.mo if an upgrade requires state migration.",
-    "Frontend must be React + TypeScript with Tailwind, Shadcn UI composition, and React Query for server state.",
-    "Do not edit files under frontend/src/components/ui or any other frontend immutable paths listed in SYSTEM_CONTEXT; compose them instead.",
-    "All user-facing text must be in English.",
-    "No mobile-native app implementation (web-only MVP).",
-    "No real-time GPS tracking, maps integration, WebSockets/Socket.io, push notifications, SMS/email integrations, or UPI payments in this MVP."
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything in frontend/src/components/ui.",
+    "Keep the backend architecture unchanged (single Motoko actor); no backend changes are required for PWA enablement."
   ],
   "nonGoals": [
-    "UPI payment processing, escrow, receipts, or any payment gateway integration",
-    "Real-time location sharing, ETA calculation, geofencing, or map-based search",
-    "In-app messaging/calling, photo/video chat sharing, or real-time chat features",
-    "Push notifications, SMS, or email notifications",
-    "Portfolio/work gallery uploads or external cloud storage integration (e.g., S3/Firebase)",
-    "Offline mode support",
-    "Multi-language support",
-    "Monetization features (commissions, subscriptions, featured listings, ads)",
-    "Advanced availability management (interactive calendar/time slots, radius configuration, custom pricing per service)",
-    "Reviews/ratings and complaint resolution (beyond the MVP scope described here)"
+    "Generating an Android APK or publishing to Google Play.",
+    "Adding push notifications or background sync.",
+    "Changing authentication (Internet Identity) behavior."
   ],
   "imageRequirements": {
     "required": [
-      "Flat, friendly wordmark logo with a simple tool/handshake motif in warm earthy colors (handyconnect-logo.dim_512x512.png)",
-      "Wide hero illustration showing a homeowner and local worker meeting with tools, clean modern vector style, warm palette (handyconnect-hero.dim_1600x600.png)"
+      "App icon in a bold, clean handyman/tools marketplace style (pwa-icon-192.dim_192x192.png)",
+      "App icon in a bold, clean handyman/tools marketplace style (pwa-icon-512.dim_512x512.png)",
+      "Maskable app icon variant with safe padding around the mark (pwa-icon-maskable-512.dim_512x512.png)"
     ],
     "edits": []
   }

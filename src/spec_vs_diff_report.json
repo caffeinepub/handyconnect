@@ -1,70 +1,35 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T12:35:52.701Z",
-  "summary": "Diff adds a Motoko backend actor with types and query/mutation endpoints for user profiles, worker profiles, browsing, and bookings (truncated), plus a React+TS frontend using TanStack Router + React Query + Internet Identity hooks, role/account-type guards, navigation, and UI components for worker discovery and bookings. Some requested behaviors cannot be fully verified due to truncation/omitted files, so only clear gaps/extras are reported.",
+  "generatedAt": "2026-02-04T13:36:50.511Z",
+  "summary": "REQ-19/REQ-20/REQ-21 PWA wiring appears implemented via new manifest (frontend/public/manifest.webmanifest), service worker (frontend/public/sw.js), offline fallback page (frontend/public/offline.html), and index.html updates to link manifest, set theme-color, add Apple meta tags, and register the SW. However, the required icon image assets referenced by the manifest/HTML are not present in the diff summary, and the diff indicates many unrelated frontend changes not requested by the BuildRequest.",
   "missing_requirements": [
     {
-      "id": "REQ-14",
-      "requirement": "Booking captures timestamps (created/updated or similar) as part of the persisted booking record.",
-      "reason": "The backend Booking type shown contains id, client, worker, dateTime, jobDetails, location, and status, but no timestamp fields are present in the visible portion of backend/main.mo.",
+      "id": "REQ-19",
+      "requirement": "Provide the required PWA icon images (192x192, 512x512, and maskable 512x512) in the frontend static assets so the manifest icons resolve.",
+      "reason": "The manifest and index.html reference /assets/generated/pwa-icon-192.dim_192x192.png, /assets/generated/pwa-icon-512.dim_512x512.png, and /assets/generated/pwa-icon-maskable-512.dim_512x512.png, but the diff summary does not show these image files being added/modified, so they may be missing.",
       "evidence": [
-        "backend/main.mo"
+        "frontend/public/manifest.webmanifest",
+        "frontend/index.html"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Backend access-control initialization via a secret admin token in the URL (caffeineAdminToken) and calling an internal _initializeAccessControlWithSecret method.",
-      "reason": "BuildRequest does not request an admin-token mechanism or URL-parameter-based privileged initialization; it only requests Internet Identity auth + role onboarding and authorization checks for user-owned data.",
+      "description": "Large-scale frontend redesign and feature work (routing/guards, dashboards/pages, Tailwind/theme changes, React Query hooks, multiple component/page modifications) beyond PWA enablement.",
+      "reason": "The BuildRequest is limited to PWA manifest + service worker + HTML metadata/registration and explicitly requests no auth behavior changes and no backend changes; the diff summary lists many unrelated frontend file modifications.",
       "evidence": [
-        "frontend/src/hooks/useActor.ts",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "description": "Footer branding/link 'Built with ❤️ using caffeine.ai'.",
-      "reason": "BuildRequest does not request external branding, and the heart emoji is additional user-facing content beyond the specified MVP scope.",
-      "evidence": [
-        "frontend/src/components/layout/AppShell.tsx"
+        "frontend-file-summaries.txt"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.74,
   "changed_files": [
-    "all_files_summary.json",
-    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.css",
     "frontend/index.html",
-    "frontend/src/App.tsx",
-    "frontend/src/components/auth/AccessDeniedScreen.tsx",
-    "frontend/src/components/auth/RequireAccountType.tsx",
-    "frontend/src/components/auth/RequireAuth.tsx",
-    "frontend/src/components/auth/RequireRole.tsx",
-    "frontend/src/components/bookings/BookingList.tsx",
-    "frontend/src/components/bookings/BookingStatusBadge.tsx",
-    "frontend/src/components/bookings/CreateBookingForm.tsx",
-    "frontend/src/components/layout/AppShell.tsx",
-    "frontend/src/components/nav/TopNav.tsx",
-    "frontend/src/components/workers/WorkerCard.tsx",
-    "frontend/src/components/workers/WorkerProfileForm.tsx",
-    "frontend/src/hooks/useAccountType.ts",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useInternetIdentity.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/index.css",
-    "frontend/src/main.tsx",
-    "frontend/src/pages/BookingDetail.tsx",
-    "frontend/src/pages/BrowseWorkers.tsx",
-    "frontend/src/pages/ClientDashboard.tsx",
-    "frontend/src/pages/OnboardingAccountType.tsx",
-    "frontend/src/pages/SignIn.tsx",
-    "frontend/src/pages/WorkerDashboard.tsx",
-    "frontend/src/pages/WorkerDetail.tsx",
-    "frontend/src/pages/WorkerProfile.tsx",
-    "frontend/src/utils/urlParams.ts",
-    "frontend/tailwind.config.js",
+    "frontend/public/manifest.webmanifest",
+    "frontend/public/offline.html",
+    "frontend/public/sw.js",
     "project_state.json"
   ]
 }

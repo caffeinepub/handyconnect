@@ -22,5 +22,9 @@
   "frontend/src/pages/WorkerProfile.tsx": "Worker profile management page for creating/editing own profile.",
   "frontend/src/pages/ClientDashboard.tsx": "Client dashboard showing upcoming and past bookings with link to browse workers, using BookingStatus enum for filtering.",
   "frontend/src/pages/WorkerDashboard.tsx": "Worker dashboard with profile completion status and bookings grouped by status using BookingStatus enum for filtering.",
-  "frontend/src/pages/BookingDetail.tsx": "Detailed booking view with status-based actions using BookingStatus enum for status checks and updates."
+  "frontend/src/pages/BookingDetail.tsx": "Detailed booking view with status-based actions using BookingStatus enum for status checks and updates.",
+  "frontend/public/manifest.webmanifest": "Web App Manifest defining HandyConnect as an installable PWA with name, icons, theme colors, and standalone display mode.",
+  "frontend/public/sw.js": "Service worker implementing app-shell caching strategy with precaching of static assets, SPA navigation fallback, and offline support.",
+  "frontend/public/offline.html": "Standalone offline fallback page with HandyConnect branding displayed when the app is offline and requested content is not cached.",
+  "frontend/index.html": "HTML entry point with PWA metadata (manifest link, theme-color, Apple PWA tags, icons) and inline service worker registration script."
 }

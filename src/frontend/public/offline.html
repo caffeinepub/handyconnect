@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - HandyConnect</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #fef9f5 0%, #f5ebe0 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    
+    .icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 2rem;
+      background: #d97757;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(217, 119, 87, 0.2);
+    }
+    
+    .icon svg {
+      width: 60px;
+      height: 60px;
+      stroke: white;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    
+    h1 {
+      color: #2c1810;
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    
+    p {
+      color: #5c4033;
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    .button {
+      display: inline-block;
+      background: #d97757;
+      color: white;
+      padding: 0.875rem 2rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(217, 119, 87, 0.3);
+    }
+    
+    .button:hover {
+      background: #c66647;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(217, 119, 87, 0.4);
+    }
+    
+    .button:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M1 1h15M1 7h15M1 13h15"></path>
+        <path d="M16 8l2-2 2 2"></path>
+        <path d="M18 6v9"></path>
+        <circle cx="18" cy="19" r="2"></circle>
+      </svg>
+    </div>
+    
+    <h1>You're Offline</h1>
+    <p>HandyConnect needs an internet connection to work. Please check your connection and try again.</p>
+    
+    <a href="/" class="button" onclick="window.location.reload(); return false;">
+      Try Again
+    </a>
+  </div>
+</body>
+</html>
