@@ -12,6 +12,21 @@ import type { Principal } from '@icp-sdk/core/principal';
 
 export type AccountType = { 'client' : null } |
   { 'worker' : null };
+export interface AdminRoleChange {
+  'principal' : Principal,
+  'adminCount' : bigint,
+  'isAdmin' : boolean,
+}
+export interface AdminSettings {
+  'appName' : string,
+  'maintenanceMode' : boolean,
+  'subscriptionFeeInCents' : bigint,
+}
+export interface AdminSignInPagePublicSettings {
+  'adminSignInSubtitle' : string,
+  'adminSignInHelperText' : string,
+  'adminSignInTitle' : string,
+}
 export interface Booking {
   'id' : bigint,
   'status' : BookingStatus,
@@ -26,6 +41,7 @@ export type BookingStatus = { 'requested' : null } |
   { 'completed' : null } |
   { 'accepted' : null } |
   { 'declined' : null };
+export type ExternalBlob = Uint8Array;
 export interface NewBooking {
   'jobDetails' : string,
   'worker' : Principal,
@@ -39,12 +55,44 @@ export interface PartialWorkerProfile {
   'description' : string,
   'isActive' : boolean,
   'category' : ServiceCategory,
+  'phoneNumber' : string,
+}
+export type PaymentStatus = { 'pending' : { 'createdTimestamp' : bigint } } |
+  { 'completed' : { 'paymentSessionId' : string } };
+export interface PaymentStatusUpdate {
+  'principal' : Principal,
+  'updatedStatus' : [] | [PaymentStatus],
+  'previousStatus' : [] | [PaymentStatus],
 }
 export type ServiceCategory = { 'cleaning' : null } |
   { 'other' : string } |
   { 'plumbing' : null } |
   { 'gardening' : null } |
   { 'electrical' : null };
+export interface ShoppingItem {
+  'productName' : string,
+  'currency' : string,
+  'quantity' : bigint,
+  'priceInCents' : bigint,
+  'productDescription' : string,
+}
+export interface StripeConfiguration {
+  'allowedCountries' : Array<string>,
+  'secretKey' : string,
+}
+export type StripeSessionStatus = {
+    'completed' : { 'userPrincipal' : [] | [string], 'response' : string }
+  } |
+  { 'failed' : { 'error' : string } };
+export interface TransformationInput {
+  'context' : Uint8Array,
+  'response' : http_request_result,
+}
+export interface TransformationOutput {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface UserProfile {
   'name' : string,
   'accountType' : [] | [AccountType],
@@ -56,13 +104,48 @@ export interface WorkerProfile {
   'serviceArea' : string,
   'displayName' : string,
   'owner' : Principal,
+  'profileImage' : [] | [ExternalBlob],
   'hourlyRate' : bigint,
   'description' : string,
   'isActive' : boolean,
   'category' : ServiceCategory,
+  'phoneNumber' : string,
+}
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
+export interface http_header { 'value' : string, 'name' : string }
+export interface http_request_result {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
 }
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'adminSignInWithCredentials' : ActorMethod<[string, string], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'browseWorkers' : ActorMethod<[], Array<WorkerProfile>>,
   'browseWorkersByCategory' : ActorMethod<
@@ -71,20 +154,76 @@ export interface _SERVICE {
   >,
   'browseWorkersByRateAscending' : ActorMethod<[], Array<WorkerProfile>>,
   'browseWorkersByRateDescending' : ActorMethod<[], Array<WorkerProfile>>,
+  'canRevokeAdmin' : ActorMethod<[], boolean>,
+  'clearExpiredPendingStatuses' : ActorMethod<
+    [],
+    Array<[Principal, PaymentStatusUpdate]>
+  >,
+  'confirmPaymentSuccessful' : ActorMethod<[string], boolean>,
   'createBookingRequest' : ActorMethod<[NewBooking], bigint>,
+  'createCheckoutSession' : ActorMethod<
+    [Array<ShoppingItem>, string, string],
+    string
+  >,
   'createWorkerProfile' : ActorMethod<[PartialWorkerProfile], undefined>,
+  'forceCheckSubscriptionStatuses' : ActorMethod<
+    [],
+    Array<[Principal, PaymentStatus]>
+  >,
+  'getAdminRoleChangeStatus' : ActorMethod<[], AdminRoleChange>,
+  'getAdminRoleChanges' : ActorMethod<[], Array<AdminRoleChange>>,
+  'getAdminRoleChangesWithCount' : ActorMethod<[], Array<AdminRoleChange>>,
+  'getAdminSettings' : ActorMethod<[], AdminSettings>,
+  'getAdminSignInPageSettings' : ActorMethod<[], AdminSignInPagePublicSettings>,
+  'getAdminSignInPageWithCredentialsCheck' : ActorMethod<
+    [],
+    { 'hasCredentials' : boolean, 'settings' : AdminSignInPagePublicSettings }
+  >,
+  'getAllPendingPaymentUsers' : ActorMethod<
+    [],
+    Array<[Principal, PaymentStatus]>
+  >,
   'getBooking' : ActorMethod<[bigint], Booking>,
   'getBookingsByClient' : ActorMethod<[Principal], Array<Booking>>,
   'getBookingsByStatus' : ActorMethod<[BookingStatus], Array<Booking>>,
   'getBookingsByWorker' : ActorMethod<[Principal], Array<Booking>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getIsAdmin' : ActorMethod<[], boolean>,
+  'getIsAdminWithCount' : ActorMethod<[], AdminRoleChange>,
+  'getPendingPaymentUsersCount' : ActorMethod<[], bigint>,
+  'getPrincipalPaymentStatus' : ActorMethod<[Principal], [] | [PaymentStatus]>,
+  'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
+  'getSubscriptionFeeInCents' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getUserSubscriptionStatus' : ActorMethod<[], boolean>,
   'getWorkerProfile' : ActorMethod<[Principal], [] | [WorkerProfile]>,
+  'getWorkerProfileImage' : ActorMethod<[Principal], [] | [ExternalBlob]>,
+  'isAdminLoggedIn' : ActorMethod<[], boolean>,
+  'isAdminSignInConfigured' : ActorMethod<[], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isMaintenanceMode' : ActorMethod<[], boolean>,
+  'isStripeConfigured' : ActorMethod<[], boolean>,
+  'listAllUsers' : ActorMethod<[], Array<[Principal, UserProfile]>>,
+  'logOutAdmin' : ActorMethod<[], boolean>,
+  'removeProfileImage' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'searchUserByPrincipal' : ActorMethod<
+    [string],
+    [] | [[Principal, UserProfile]]
+  >,
+  'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
+  'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updateAdminCredentials' : ActorMethod<[string, string], undefined>,
+  'updateAdminSettings' : ActorMethod<[AdminSettings], undefined>,
+  'updateAdminSignInPageSettings' : ActorMethod<
+    [AdminSignInPagePublicSettings],
+    undefined
+  >,
   'updateBookingStatus' : ActorMethod<[bigint, BookingStatus], undefined>,
+  'updateSubscriptionFeeInCents' : ActorMethod<[bigint], undefined>,
   'updateWorkerProfile' : ActorMethod<[PartialWorkerProfile], undefined>,
+  'uploadProfileImage' : ActorMethod<[ExternalBlob], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

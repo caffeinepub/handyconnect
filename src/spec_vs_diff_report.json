@@ -1,35 +1,45 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-04T13:36:50.511Z",
-  "summary": "REQ-19/REQ-20/REQ-21 PWA wiring appears implemented via new manifest (frontend/public/manifest.webmanifest), service worker (frontend/public/sw.js), offline fallback page (frontend/public/offline.html), and index.html updates to link manifest, set theme-color, add Apple meta tags, and register the SW. However, the required icon image assets referenced by the manifest/HTML are not present in the diff summary, and the diff indicates many unrelated frontend changes not requested by the BuildRequest.",
+  "generatedAt": "2026-02-05T06:49:58.747Z",
+  "summary": "Diff adds a credential-based admin sign-in UI flow and frontend route protection support, and introduces a Motoko migration module to initialize/persist default admin credentials across upgrades. However, the diff summary does not provide direct evidence that the backend exposes the required credential-validation/session endpoints (only frontend hooks reference them and backend shows stored credentials).",
   "missing_requirements": [
     {
-      "id": "REQ-19",
-      "requirement": "Provide the required PWA icon images (192x192, 512x512, and maskable 512x512) in the frontend static assets so the manifest icons resolve.",
-      "reason": "The manifest and index.html reference /assets/generated/pwa-icon-192.dim_192x192.png, /assets/generated/pwa-icon-512.dim_512x512.png, and /assets/generated/pwa-icon-maskable-512.dim_512x512.png, but the diff summary does not show these image files being added/modified, so they may be missing.",
+      "id": "REQ-44",
+      "requirement": "Implement backend support for verifying the admin username/password and establishing an admin-authenticated session state usable by the frontend (validation method, session check, and admin logout).",
+      "reason": "Frontend code calls backend methods (adminSignInWithCredentials, isAdminLoggedIn, logOutAdmin), but the provided backend/main.mo diff excerpt only shows storage of adminCredentials and does not show any public methods that validate credentials or manage a credential-based admin session state.",
       "evidence": [
-        "frontend/public/manifest.webmanifest",
-        "frontend/index.html"
+        "backend/main.mo",
+        "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Large-scale frontend redesign and feature work (routing/guards, dashboards/pages, Tailwind/theme changes, React Query hooks, multiple component/page modifications) beyond PWA enablement.",
-      "reason": "The BuildRequest is limited to PWA manifest + service worker + HTML metadata/registration and explicitly requests no auth behavior changes and no backend changes; the diff summary lists many unrelated frontend file modifications.",
+      "description": "Admin user-control UI enhancements (principal ID validation, copy-to-clipboard, additional toasts) unrelated to adding admin username/password login.",
+      "reason": "BuildRequest is scoped to adding credential-based admin login and backend support/persistence; it does not request changes to the admin user management panel UX.",
       "evidence": [
-        "frontend-file-summaries.txt"
+        "frontend/src/components/admin/UserControlPanel.tsx"
+      ]
+    },
+    {
+      "description": "Top navigation changes to show an Admin link and to perform a combined logout flow calling logOutAdmin and clearing Internet Identity session.",
+      "reason": "While potentially supportive, the BuildRequest does not explicitly ask for nav changes or combined logout behavior; it only requires an admin sign-in option and backend/session support.",
+      "evidence": [
+        "frontend/src/components/nav/TopNav.tsx"
       ]
     }
   ],
-  "confidence": 0.74,
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.html",
-    "frontend/public/manifest.webmanifest",
-    "frontend/public/offline.html",
-    "frontend/public/sw.js",
+    "frontend/src/components/admin/UserControlPanel.tsx",
+    "frontend/src/components/auth/RequireAdmin.tsx",
+    "frontend/src/components/nav/TopNav.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminSignIn.tsx",
     "project_state.json"
   ]
 }

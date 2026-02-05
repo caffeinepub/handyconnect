@@ -8,11 +8,23 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _CaffeineStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _CaffeineStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _CaffeineStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
 export const ServiceCategory = IDL.Variant({
   'cleaning' : IDL.Null,
   'other' : IDL.Text,
@@ -24,16 +36,34 @@ export const WorkerProfile = IDL.Record({
   'serviceArea' : IDL.Text,
   'displayName' : IDL.Text,
   'owner' : IDL.Principal,
+  'profileImage' : IDL.Opt(ExternalBlob),
   'hourlyRate' : IDL.Nat,
   'description' : IDL.Text,
   'isActive' : IDL.Bool,
   'category' : ServiceCategory,
+  'phoneNumber' : IDL.Text,
+});
+export const PaymentStatus = IDL.Variant({
+  'pending' : IDL.Record({ 'createdTimestamp' : IDL.Int }),
+  'completed' : IDL.Record({ 'paymentSessionId' : IDL.Text }),
+});
+export const PaymentStatusUpdate = IDL.Record({
+  'principal' : IDL.Principal,
+  'updatedStatus' : IDL.Opt(PaymentStatus),
+  'previousStatus' : IDL.Opt(PaymentStatus),
 });
 export const NewBooking = IDL.Record({
   'jobDetails' : IDL.Text,
   'worker' : IDL.Principal,
   'dateTime' : IDL.Text,
   'location' : IDL.Text,
+});
+export const ShoppingItem = IDL.Record({
+  'productName' : IDL.Text,
+  'currency' : IDL.Text,
+  'quantity' : IDL.Nat,
+  'priceInCents' : IDL.Nat,
+  'productDescription' : IDL.Text,
 });
 export const PartialWorkerProfile = IDL.Record({
   'serviceArea' : IDL.Text,
@@ -42,6 +72,22 @@ export const PartialWorkerProfile = IDL.Record({
   'description' : IDL.Text,
   'isActive' : IDL.Bool,
   'category' : ServiceCategory,
+  'phoneNumber' : IDL.Text,
+});
+export const AdminRoleChange = IDL.Record({
+  'principal' : IDL.Principal,
+  'adminCount' : IDL.Nat,
+  'isAdmin' : IDL.Bool,
+});
+export const AdminSettings = IDL.Record({
+  'appName' : IDL.Text,
+  'maintenanceMode' : IDL.Bool,
+  'subscriptionFeeInCents' : IDL.Nat,
+});
+export const AdminSignInPagePublicSettings = IDL.Record({
+  'adminSignInSubtitle' : IDL.Text,
+  'adminSignInHelperText' : IDL.Text,
+  'adminSignInTitle' : IDL.Text,
 });
 export const BookingStatus = IDL.Variant({
   'requested' : IDL.Null,
@@ -67,9 +113,65 @@ export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'accountType' : IDL.Opt(AccountType),
 });
+export const StripeSessionStatus = IDL.Variant({
+  'completed' : IDL.Record({
+    'userPrincipal' : IDL.Opt(IDL.Text),
+    'response' : IDL.Text,
+  }),
+  'failed' : IDL.Record({ 'error' : IDL.Text }),
+});
+export const StripeConfiguration = IDL.Record({
+  'allowedCountries' : IDL.Vec(IDL.Text),
+  'secretKey' : IDL.Text,
+});
+export const http_header = IDL.Record({
+  'value' : IDL.Text,
+  'name' : IDL.Text,
+});
+export const http_request_result = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(http_header),
+});
+export const TransformationInput = IDL.Record({
+  'context' : IDL.Vec(IDL.Nat8),
+  'response' : http_request_result,
+});
+export const TransformationOutput = IDL.Record({
+  'status' : IDL.Nat,
+  'body' : IDL.Vec(IDL.Nat8),
+  'headers' : IDL.Vec(http_header),
+});
 
 export const idlService = IDL.Service({
+  '_caffeineStorageBlobIsLive' : IDL.Func(
+      [IDL.Vec(IDL.Nat8)],
+      [IDL.Bool],
+      ['query'],
+    ),
+  '_caffeineStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_caffeineStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_CaffeineStorageCreateCertificateResult],
+      [],
+    ),
+  '_caffeineStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_CaffeineStorageRefillInformation)],
+      [_CaffeineStorageRefillResult],
+      [],
+    ),
+  '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'adminSignInWithCredentials' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'browseWorkers' : IDL.Func([], [IDL.Vec(WorkerProfile)], ['query']),
   'browseWorkersByCategory' : IDL.Func(
@@ -87,8 +189,53 @@ export const idlService = IDL.Service({
       [IDL.Vec(WorkerProfile)],
       ['query'],
     ),
+  'canRevokeAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'clearExpiredPendingStatuses' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatusUpdate))],
+      [],
+    ),
+  'confirmPaymentSuccessful' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'createBookingRequest' : IDL.Func([NewBooking], [IDL.Nat], []),
+  'createCheckoutSession' : IDL.Func(
+      [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
+      [IDL.Text],
+      [],
+    ),
   'createWorkerProfile' : IDL.Func([PartialWorkerProfile], [], []),
+  'forceCheckSubscriptionStatuses' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatus))],
+      ['query'],
+    ),
+  'getAdminRoleChangeStatus' : IDL.Func([], [AdminRoleChange], ['query']),
+  'getAdminRoleChanges' : IDL.Func([], [IDL.Vec(AdminRoleChange)], ['query']),
+  'getAdminRoleChangesWithCount' : IDL.Func(
+      [],
+      [IDL.Vec(AdminRoleChange)],
+      ['query'],
+    ),
+  'getAdminSettings' : IDL.Func([], [AdminSettings], ['query']),
+  'getAdminSignInPageSettings' : IDL.Func(
+      [],
+      [AdminSignInPagePublicSettings],
+      ['query'],
+    ),
+  'getAdminSignInPageWithCredentialsCheck' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'hasCredentials' : IDL.Bool,
+          'settings' : AdminSignInPagePublicSettings,
+        }),
+      ],
+      ['query'],
+    ),
+  'getAllPendingPaymentUsers' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatus))],
+      ['query'],
+    ),
   'getBooking' : IDL.Func([IDL.Nat], [Booking], ['query']),
   'getBookingsByClient' : IDL.Func(
       [IDL.Principal],
@@ -107,30 +254,89 @@ export const idlService = IDL.Service({
     ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getIsAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'getIsAdminWithCount' : IDL.Func([], [AdminRoleChange], ['query']),
+  'getPendingPaymentUsersCount' : IDL.Func([], [IDL.Nat], ['query']),
+  'getPrincipalPaymentStatus' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(PaymentStatus)],
+      ['query'],
+    ),
+  'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+  'getSubscriptionFeeInCents' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getUserSubscriptionStatus' : IDL.Func([], [IDL.Bool], ['query']),
   'getWorkerProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(WorkerProfile)],
       ['query'],
     ),
+  'getWorkerProfileImage' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(ExternalBlob)],
+      ['query'],
+    ),
+  'isAdminLoggedIn' : IDL.Func([], [IDL.Bool], ['query']),
+  'isAdminSignInConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'isMaintenanceMode' : IDL.Func([], [IDL.Bool], ['query']),
+  'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
+  'listAllUsers' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
+      ['query'],
+    ),
+  'logOutAdmin' : IDL.Func([], [IDL.Bool], []),
+  'removeProfileImage' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'searchUserByPrincipal' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(IDL.Tuple(IDL.Principal, UserProfile))],
+      ['query'],
+    ),
+  'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+  'transform' : IDL.Func(
+      [TransformationInput],
+      [TransformationOutput],
+      ['query'],
+    ),
+  'updateAdminCredentials' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'updateAdminSettings' : IDL.Func([AdminSettings], [], []),
+  'updateAdminSignInPageSettings' : IDL.Func(
+      [AdminSignInPagePublicSettings],
+      [],
+      [],
+    ),
   'updateBookingStatus' : IDL.Func([IDL.Nat, BookingStatus], [], []),
+  'updateSubscriptionFeeInCents' : IDL.Func([IDL.Nat], [], []),
   'updateWorkerProfile' : IDL.Func([PartialWorkerProfile], [], []),
+  'uploadProfileImage' : IDL.Func([ExternalBlob], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _CaffeineStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _CaffeineStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _CaffeineStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
   const ServiceCategory = IDL.Variant({
     'cleaning' : IDL.Null,
     'other' : IDL.Text,
@@ -142,16 +348,34 @@ export const idlFactory = ({ IDL }) => {
     'serviceArea' : IDL.Text,
     'displayName' : IDL.Text,
     'owner' : IDL.Principal,
+    'profileImage' : IDL.Opt(ExternalBlob),
     'hourlyRate' : IDL.Nat,
     'description' : IDL.Text,
     'isActive' : IDL.Bool,
     'category' : ServiceCategory,
+    'phoneNumber' : IDL.Text,
+  });
+  const PaymentStatus = IDL.Variant({
+    'pending' : IDL.Record({ 'createdTimestamp' : IDL.Int }),
+    'completed' : IDL.Record({ 'paymentSessionId' : IDL.Text }),
+  });
+  const PaymentStatusUpdate = IDL.Record({
+    'principal' : IDL.Principal,
+    'updatedStatus' : IDL.Opt(PaymentStatus),
+    'previousStatus' : IDL.Opt(PaymentStatus),
   });
   const NewBooking = IDL.Record({
     'jobDetails' : IDL.Text,
     'worker' : IDL.Principal,
     'dateTime' : IDL.Text,
     'location' : IDL.Text,
+  });
+  const ShoppingItem = IDL.Record({
+    'productName' : IDL.Text,
+    'currency' : IDL.Text,
+    'quantity' : IDL.Nat,
+    'priceInCents' : IDL.Nat,
+    'productDescription' : IDL.Text,
   });
   const PartialWorkerProfile = IDL.Record({
     'serviceArea' : IDL.Text,
@@ -160,6 +384,22 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'isActive' : IDL.Bool,
     'category' : ServiceCategory,
+    'phoneNumber' : IDL.Text,
+  });
+  const AdminRoleChange = IDL.Record({
+    'principal' : IDL.Principal,
+    'adminCount' : IDL.Nat,
+    'isAdmin' : IDL.Bool,
+  });
+  const AdminSettings = IDL.Record({
+    'appName' : IDL.Text,
+    'maintenanceMode' : IDL.Bool,
+    'subscriptionFeeInCents' : IDL.Nat,
+  });
+  const AdminSignInPagePublicSettings = IDL.Record({
+    'adminSignInSubtitle' : IDL.Text,
+    'adminSignInHelperText' : IDL.Text,
+    'adminSignInTitle' : IDL.Text,
   });
   const BookingStatus = IDL.Variant({
     'requested' : IDL.Null,
@@ -182,9 +422,66 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'accountType' : IDL.Opt(AccountType),
   });
+  const StripeSessionStatus = IDL.Variant({
+    'completed' : IDL.Record({
+      'userPrincipal' : IDL.Opt(IDL.Text),
+      'response' : IDL.Text,
+    }),
+    'failed' : IDL.Record({ 'error' : IDL.Text }),
+  });
+  const StripeConfiguration = IDL.Record({
+    'allowedCountries' : IDL.Vec(IDL.Text),
+    'secretKey' : IDL.Text,
+  });
+  const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
+  const http_request_result = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(http_header),
+  });
+  const TransformationInput = IDL.Record({
+    'context' : IDL.Vec(IDL.Nat8),
+    'response' : http_request_result,
+  });
+  const TransformationOutput = IDL.Record({
+    'status' : IDL.Nat,
+    'body' : IDL.Vec(IDL.Nat8),
+    'headers' : IDL.Vec(http_header),
+  });
   
   return IDL.Service({
+    '_caffeineStorageBlobIsLive' : IDL.Func(
+        [IDL.Vec(IDL.Nat8)],
+        [IDL.Bool],
+        ['query'],
+      ),
+    '_caffeineStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_caffeineStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_caffeineStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_CaffeineStorageCreateCertificateResult],
+        [],
+      ),
+    '_caffeineStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_CaffeineStorageRefillInformation)],
+        [_CaffeineStorageRefillResult],
+        [],
+      ),
+    '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'adminSignInWithCredentials' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Bool],
+        [],
+      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'browseWorkers' : IDL.Func([], [IDL.Vec(WorkerProfile)], ['query']),
     'browseWorkersByCategory' : IDL.Func(
@@ -202,8 +499,53 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(WorkerProfile)],
         ['query'],
       ),
+    'canRevokeAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'clearExpiredPendingStatuses' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatusUpdate))],
+        [],
+      ),
+    'confirmPaymentSuccessful' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'createBookingRequest' : IDL.Func([NewBooking], [IDL.Nat], []),
+    'createCheckoutSession' : IDL.Func(
+        [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
+        [IDL.Text],
+        [],
+      ),
     'createWorkerProfile' : IDL.Func([PartialWorkerProfile], [], []),
+    'forceCheckSubscriptionStatuses' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatus))],
+        ['query'],
+      ),
+    'getAdminRoleChangeStatus' : IDL.Func([], [AdminRoleChange], ['query']),
+    'getAdminRoleChanges' : IDL.Func([], [IDL.Vec(AdminRoleChange)], ['query']),
+    'getAdminRoleChangesWithCount' : IDL.Func(
+        [],
+        [IDL.Vec(AdminRoleChange)],
+        ['query'],
+      ),
+    'getAdminSettings' : IDL.Func([], [AdminSettings], ['query']),
+    'getAdminSignInPageSettings' : IDL.Func(
+        [],
+        [AdminSignInPagePublicSettings],
+        ['query'],
+      ),
+    'getAdminSignInPageWithCredentialsCheck' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'hasCredentials' : IDL.Bool,
+            'settings' : AdminSignInPagePublicSettings,
+          }),
+        ],
+        ['query'],
+      ),
+    'getAllPendingPaymentUsers' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatus))],
+        ['query'],
+      ),
     'getBooking' : IDL.Func([IDL.Nat], [Booking], ['query']),
     'getBookingsByClient' : IDL.Func(
         [IDL.Principal],
@@ -222,20 +564,67 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getIsAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'getIsAdminWithCount' : IDL.Func([], [AdminRoleChange], ['query']),
+    'getPendingPaymentUsersCount' : IDL.Func([], [IDL.Nat], ['query']),
+    'getPrincipalPaymentStatus' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(PaymentStatus)],
+        ['query'],
+      ),
+    'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+    'getSubscriptionFeeInCents' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'getUserSubscriptionStatus' : IDL.Func([], [IDL.Bool], ['query']),
     'getWorkerProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(WorkerProfile)],
         ['query'],
       ),
+    'getWorkerProfileImage' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(ExternalBlob)],
+        ['query'],
+      ),
+    'isAdminLoggedIn' : IDL.Func([], [IDL.Bool], ['query']),
+    'isAdminSignInConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'isMaintenanceMode' : IDL.Func([], [IDL.Bool], ['query']),
+    'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
+    'listAllUsers' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, UserProfile))],
+        ['query'],
+      ),
+    'logOutAdmin' : IDL.Func([], [IDL.Bool], []),
+    'removeProfileImage' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'searchUserByPrincipal' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(IDL.Tuple(IDL.Principal, UserProfile))],
+        ['query'],
+      ),
+    'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+    'transform' : IDL.Func(
+        [TransformationInput],
+        [TransformationOutput],
+        ['query'],
+      ),
+    'updateAdminCredentials' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'updateAdminSettings' : IDL.Func([AdminSettings], [], []),
+    'updateAdminSignInPageSettings' : IDL.Func(
+        [AdminSignInPagePublicSettings],
+        [],
+        [],
+      ),
     'updateBookingStatus' : IDL.Func([IDL.Nat, BookingStatus], [], []),
+    'updateSubscriptionFeeInCents' : IDL.Func([IDL.Nat], [], []),
     'updateWorkerProfile' : IDL.Func([PartialWorkerProfile], [], []),
+    'uploadProfileImage' : IDL.Func([ExternalBlob], [], []),
   });
 };
 

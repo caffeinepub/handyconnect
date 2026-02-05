@@ -1,83 +1,42 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "HandyConnect PWA enablement (manifest, metadata, service worker offline)",
+  "title": "Admin username/password sign-in option (alongside Internet Identity)",
   "requirements": [
     {
-      "id": "REQ-19",
-      "summary": "Add a Web App Manifest and required PWA icons so HandyConnect is recognized as an installable PWA.",
+      "id": "REQ-43",
+      "summary": "Add an Admin Sign-In option using username/id + password that grants access to /app/admin for the configured credentials while keeping the existing Internet Identity admin sign-in flow unchanged.",
       "acceptanceCriteria": [
-        "A manifest file is present in the frontend static assets and is linked from the HTML entry point.",
-        "The manifest includes at least 192x192 and 512x512 icons and is valid JSON.",
-        "On Android Chrome, the site is eligible for \"Add to Home screen\" / \"Install app\"."
+        "The Admin Sign-In page provides a username/id + password form.",
+        "Submitting username \"adminumar\" with password \"umar9945\" successfully signs the user into the admin area (/app/admin).",
+        "Submitting any other username/password combination shows an English error message and does not grant admin access.",
+        "The existing Internet Identity-based admin sign-in flow continues to work as it does today."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/manifest.webmanifest",
-          "operation": "create",
-          "description": "Create the Web App Manifest for HandyConnect including name, short_name, start_url, display=standalone, theme_color, background_color, and icons referencing the generated icon assets."
-        },
-        {
-          "path": "frontend/public/assets/generated/pwa-icon-192.dim_192x192.png",
-          "operation": "create",
-          "description": "Add the required PWA app icon (192x192) as a static frontend asset at frontend/public/assets/generated/pwa-icon-192.dim_192x192.png."
-        },
-        {
-          "path": "frontend/public/assets/generated/pwa-icon-512.dim_512x512.png",
-          "operation": "create",
-          "description": "Add the required PWA app icon (512x512) as a static frontend asset at frontend/public/assets/generated/pwa-icon-512.dim_512x512.png."
-        },
-        {
-          "path": "frontend/public/assets/generated/pwa-icon-maskable-512.dim_512x512.png",
-          "operation": "create",
-          "description": "Add the required maskable PWA app icon (512x512) as a static frontend asset at frontend/public/assets/generated/pwa-icon-maskable-512.dim_512x512.png."
-        },
-        {
-          "path": "frontend/index.html",
+          "path": "frontend/src/pages/AdminSignIn.tsx",
           "operation": "modify",
-          "description": "Wire the manifest into the HTML entry point by adding a manifest link that points to the static manifest.webmanifest (and keep the app title consistent with the manifest)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-20",
-      "summary": "Implement a service worker for app-shell offline support with precaching and SPA navigation fallback, plus an explicit offline fallback for uncached requests.",
-      "acceptanceCriteria": [
-        "A service worker file exists in frontend static assets and is registered by the app (without modifying immutable files).",
-        "After the first load, the app can be reopened while offline and renders the app shell (or an explicit offline fallback page) instead of a browser error.",
-        "Navigation to client-side routes while offline returns the SPA entry (index.html) rather than a network 404."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/public/sw.js",
-          "operation": "create",
-          "description": "Create a service worker that (1) precaches the app shell and built static assets by fetching index.html during install and caching discovered script/link assets, (2) serves cached index.html for navigation requests to support SPA routing offline, and (3) serves a cached offline fallback for uncached requests when offline."
+          "description": "Add a username/id + password sign-in form option that calls the backend capability for credential validation (adminSignInWithCredentials) and navigates to /app/admin on success; show an English error message on failure; keep the existing Internet Identity admin sign-in UI/behavior intact. Use existing UI components (do not edit anything under frontend/src/components/ui)."
         },
         {
-          "path": "frontend/public/offline.html",
-          "operation": "create",
-          "description": "Create an explicit offline fallback page to be served by the service worker for non-navigation requests that are not cached when the user is offline."
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks to support credential-based admin session checks and actions needed by route protection and UI (e.g., query isAdminLoggedIn and mutation logOutAdmin), using the existing backend actor methods. Ensure queries are enabled with an available actor and use stable query keys so admin session state updates correctly."
         },
         {
-          "path": "frontend/index.html",
+          "path": "frontend/src/components/auth/RequireAdmin.tsx",
           "operation": "modify",
-          "description": "Add runtime service worker registration (e.g., via an inline module script) that registers /sw.js in production builds without modifying any immutable frontend/src paths."
-        }
-      ]
-    },
-    {
-      "id": "REQ-21",
-      "summary": "Update the HTML entry point with required PWA metadata and ensure service worker registration is performed from a non-immutable file.",
-      "acceptanceCriteria": [
-        "frontend/index.html includes a <link rel=\"manifest\"> and a theme-color meta tag consistent with the app theme.",
-        "Service worker registration occurs from a non-immutable file (e.g., index.html) and succeeds in production builds.",
-        "PWA install prompt eligibility is achieved in Lighthouse (Installable criteria met)."
-      ],
-      "file_operations": [
+          "description": "Extend the admin route guard to allow access if either (1) the caller is an Internet Identity admin (existing check) or (2) a credential-based admin session is active (new isAdminLoggedIn check). Continue to show the existing loading state and access denied screen for unauthorized users."
+        },
         {
-          "path": "frontend/index.html",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add required PWA metadata: manifest link, theme-color meta, and Apple PWA meta tags; include icon links (e.g., apple-touch-icon) pointing to frontend/public/assets/generated/pwa-icon-192.dim_192x192.png and frontend/public/assets/generated/pwa-icon-512.dim_512x512.png; ensure service worker registration is present here (not in immutable frontend/src files)."
+          "description": "Update /app/admin route wiring so the admin dashboard is protected by the updated admin guard logic that supports both Internet Identity admin and credential-based admin session access, while preserving the current behavior for the Internet Identity flow."
+        },
+        {
+          "path": "frontend/src/components/nav/TopNav.tsx",
+          "operation": "modify",
+          "description": "Update admin navigation visibility and logout behavior to account for credential-based admin sessions: show the Admin link when the user is admin via Internet Identity or has an active credential-based admin session; on sign out, also call the backend capability to end the admin credential session (logOutAdmin) in addition to the existing Internet Identity logout + query cache clear."
         }
       ]
     }

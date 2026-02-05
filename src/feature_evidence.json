@@ -2,11 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-web-app-manifest-for-handyconnect-and-wire-it-into-the-app-so-the-site-is-recognized-as-a-pwa-name-short-name-start-url-display-standalone-theme-color-background-color-icons",
-      "featureTitle": "Add a Web App Manifest for HandyConnect and wire it into the app so the site is recognized as a PWA (name, short_name, start_url, display=standalone, theme_color, background_color, icons).",
+      "featureId": "feature-add-a-separate-admin-sign-in-option-that-authenticates-using-a-username-and-password-in-addition-to-the-existing-internet-identity-admin-sign-in-flow-using-these-initial-credentials-exactly-username-id-adminumar-and-password-umar9945",
+      "featureTitle": "Add a separate Admin Sign-In option that authenticates using a username and password (in addition to the existing Internet Identity admin sign-in flow), using these initial credentials exactly: username/id = \"adminumar\" and password = \"umar9945\".",
       "files": [
-        "frontend/index.html",
-        "frontend/public/manifest.webmanifest"
+        "frontend/src/components/auth/RequireAdmin.tsx",
+        "frontend/src/components/nav/TopNav.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/AdminSignIn.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -14,50 +16,13 @@
         "shadcn-ui@1.0.0",
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0"
       ],
       "testIds": [
-        "REQ-19"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-implement-a-service-worker-that-enables-app-shell-offline-support-by-precaching-the-built-static-assets-and-serving-the-spa-entry-index-html-for-navigation-requests-include-an-offline-fallback-for-uncached-requests-when-the-user-is-offline",
-      "featureTitle": "Implement a service worker that enables app-shell offline support by precaching the built static assets and serving the SPA entry (index.html) for navigation requests; include an offline fallback for uncached requests when the user is offline.",
-      "files": [
-        "frontend/index.html",
-        "frontend/public/offline.html",
-        "frontend/public/sw.js"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-20"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-html-entry-point-to-include-required-pwa-metadata-manifest-link-theme-color-meta-and-any-necessary-apple-pwa-meta-tags-and-to-register-the-service-worker-at-runtime-without-editing-frontend-src-main-tsx-or-other-immutable-paths",
-      "featureTitle": "Update the HTML entry point to include required PWA metadata (manifest link, theme-color meta, and any necessary Apple PWA meta tags) and to register the service worker at runtime (without editing frontend/src/main.tsx or other immutable paths).",
-      "files": [
-        "frontend/index.html"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-21"
+        "REQ-43"
       ],
       "confidence": "high"
     }

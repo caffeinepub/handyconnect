@@ -2,18 +2,30 @@ import Text "mo:core/Text";
 import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Map "mo:core/Map";
+import Nat "mo:core/Nat";
+import Int "mo:core/Int";
+import Time "mo:core/Time";
 import Iter "mo:core/Iter";
 import Order "mo:core/Order";
 import Principal "mo:core/Principal";
+
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Stripe "stripe/stripe";
+import OutCall "http-outcalls/outcall";
+import Storage "blob-storage/Storage";
+import MixinStorage "blob-storage/Mixin";
+import Migration "migration";
 
+// Use migration module which is automatically called on canister upgrade
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+  include MixinStorage();
 
   public type UserRole = AccessControl.UserRole;
-  
+
   public type AccountType = {
     #client;
     #worker;
@@ -22,6 +34,43 @@ actor {
   public type UserProfile = {
     accountType : ?AccountType;
     name : Text;
+  };
+
+  public type PaymentStatus = {
+    #pending : { createdTimestamp : Int };
+    #completed : { paymentSessionId : Text };
+  };
+
+  public type PaymentStatusUpdate = {
+    principal : Principal;
+    previousStatus : ?PaymentStatus;
+    updatedStatus : ?PaymentStatus;
+  };
+
+  public type SubscriptionPayment = {
+    status : PaymentStatus;
+    gracePeriodEnd : Int;
+  };
+
+  public type AdminSettings = {
+    maintenanceMode : Bool;
+    appName : Text;
+    subscriptionFeeInCents : Nat;
+  };
+
+  // Backend-facing admin settings only (includes sensitive data, only accessible by admins)
+  public type AdminManagedSignInPageSettings = {
+    adminSignInTitle : Text;
+    adminSignInSubtitle : Text;
+    adminSignInHelperText : Text;
+    adminSettings : AdminSettings;
+  };
+
+  // Public-facing settings for admin sign-in page (non-sensitive, accessible by anyone)
+  public type AdminSignInPagePublicSettings = {
+    adminSignInTitle : Text;
+    adminSignInSubtitle : Text;
+    adminSignInHelperText : Text;
   };
 
   public type ServiceCategory = {
@@ -40,6 +89,8 @@ actor {
     serviceArea : Text;
     hourlyRate : Nat;
     isActive : Bool;
+    phoneNumber : Text;
+    profileImage : ?Storage.ExternalBlob;
   };
 
   public type BookingStatus = {
@@ -79,6 +130,7 @@ actor {
     serviceArea : Text;
     hourlyRate : Nat;
     isActive : Bool;
+    phoneNumber : Text;
   };
 
   public type NewBooking = {
@@ -88,17 +140,414 @@ actor {
     location : Text;
   };
 
+  public type AdminRoleChange = {
+    adminCount : Nat;
+    principal : Principal;
+    isAdmin : Bool;
+  };
+
   let userProfiles = Map.empty<Principal, UserProfile>();
   let workerProfiles = Map.empty<Principal, WorkerProfile>();
 
   var bookingCounter = 0;
   let bookings = Map.empty<Nat, Booking>();
 
+  var stripeConfiguration : ?Stripe.StripeConfiguration = null;
+
+  // Add admin credentials
+  var adminCredentials : ?{
+    username : Text;
+    password : Text;
+  } = ?{
+    username = "adminumar";
+    password = "umar9945";
+  };
+
+  // Store explicit admin principal mapping
+  var adminCount = 1;
+  let adminPrincipals = Map.empty<Principal, Bool>();
+
+  // Store public-facing settings for Admin Sign-In page (non-sensitive) - now mutable
+  var adminSignInPagePublicSettings : AdminSignInPagePublicSettings = {
+    adminSignInTitle = "Welcome to the Admin Portal";
+    adminSignInSubtitle = "Please enter your credentials to access the admin console.";
+    adminSignInHelperText = "Contact your super admin if you encounter login issues.";
+  };
+
+  // Store backend-facing, admin-only settings including sensitive information
+  var adminSettings : AdminSettings = {
+    maintenanceMode = false;
+    appName = "Service Exchange Platform";
+    subscriptionFeeInCents = 999;
+  };
+
+  let subscriptionPayments = Map.empty<Principal, SubscriptionPayment>();
+
+  // Helper function to check if user has valid subscription (paid or within grace period)
+  func hasValidSubscription(caller : Principal) : Bool {
+    // Admins bypass subscription checks
+    if (AccessControl.isAdmin(accessControlState, caller)) {
+      return true;
+    };
+
+    // Check if user has a profile (required for subscription tracking)
+    if (not userProfiles.containsKey(caller)) {
+      return false;
+    };
+
+    // Check subscription payment status
+    switch (subscriptionPayments.get(caller)) {
+      case (null) {
+        // No payment record means user hasn't completed onboarding
+        false;
+      };
+      case (?payment) {
+        switch (payment.status) {
+          case (#completed _) {
+            // Payment completed - valid subscription
+            true;
+          };
+          case (#pending { createdTimestamp }) {
+            // Check if still within grace period
+            let currentTime = Time.now();
+            currentTime <= payment.gracePeriodEnd;
+          };
+        };
+      };
+    };
+  };
+
+  public query func isStripeConfigured() : async Bool {
+    stripeConfiguration != null;
+  };
+
+  public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    stripeConfiguration := ?config;
+  };
+
+  func getStripeConfiguration() : Stripe.StripeConfiguration {
+    switch (stripeConfiguration) {
+      case (null) { Runtime.trap("Stripe needs to be first configured") };
+      case (?config) { config };
+    };
+  };
+
+  public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
+    OutCall.transform(input);
+  };
+
+  public func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+    await Stripe.getSessionStatus(getStripeConfiguration(), sessionId, transform);
+  };
+
+  public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
+    await Stripe.createCheckoutSession(getStripeConfiguration(), caller, items, successUrl, cancelUrl, transform);
+  };
+
+  // Admin Sign-In Page Public Endpoints
+  public query func getAdminSignInPageSettings() : async AdminSignInPagePublicSettings {
+    adminSignInPagePublicSettings;
+  };
+
+  // Returns true if admin credentials exist (for frontend visibility)
+  public query func isAdminSignInConfigured() : async Bool {
+    adminCredentials != null;
+  };
+
+  // Get new admin sign-in pages and verify backend credentials
+  public query func getAdminSignInPageWithCredentialsCheck() : async {
+    settings : AdminSignInPagePublicSettings;
+    hasCredentials : Bool;
+  } {
+    {
+      settings = adminSignInPagePublicSettings;
+      hasCredentials = adminCredentials != null;
+    };
+  };
+
+  // Admin sign-in verification - grants admin role to caller upon successful authentication
+  public shared ({ caller }) func adminSignInWithCredentials(username : Text, password : Text) : async Bool {
+    // Verify credentials
+    switch (adminCredentials) {
+      case (?{ username = storedUsername; password = storedPassword }) {
+        if (username == storedUsername and password == storedPassword) {
+          // Grant admin role to the caller via AccessControl system
+          AccessControl.assignRole(accessControlState, caller, caller, #admin);
+          return true;
+        };
+      };
+      case (null) {};
+    };
+    false;
+  };
+
+  // Check if the caller is currently an admin (via AccessControl)
+  public query ({ caller }) func isAdminLoggedIn() : async Bool {
+    AccessControl.isAdmin(accessControlState, caller);
+  };
+
+  // Revoke admin role from caller
+  public shared ({ caller }) func logOutAdmin() : async Bool {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can log out");
+    };
+    // Note: AccessControl.assignRole is admin-only, so we use it to revoke
+    // The caller must be admin to call this, and we're changing their own role
+    AccessControl.assignRole(accessControlState, caller, caller, #guest);
+    true;
+  };
+
+  public shared ({ caller }) func updateAdminSignInPageSettings(newSettings : AdminSignInPagePublicSettings) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Unauthorized: Only admins can update admin sign-in page settings");
+    };
+    adminSignInPagePublicSettings := newSettings;
+  };
+
+  public shared ({ caller }) func updateAdminCredentials(newUsername : Text, newPassword : Text) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Unauthorized: Only admins can update admin credentials");
+    };
+    adminCredentials := ?{
+      username = newUsername;
+      password = newPassword;
+    };
+  };
+
+  public query ({ caller }) func canRevokeAdmin() : async Bool {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can check revocation status");
+    };
+    adminCount > 1;
+  };
+
+  public query ({ caller }) func getAdminRoleChanges() : async [AdminRoleChange] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view role changes");
+    };
+    adminPrincipals.toArray().map(func((principal, isAdmin)) { { adminCount; principal; isAdmin } });
+  };
+
+  public query ({ caller }) func getAdminRoleChangeStatus() : async AdminRoleChange {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view role change status");
+    };
+    {
+      adminCount;
+      principal = caller;
+      isAdmin = switch (adminPrincipals.get(caller)) {
+        case (null) { false };
+        case (?bool) { bool };
+      };
+    };
+  };
+
+  public query ({ caller }) func getIsAdmin() : async Bool {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can check admin status");
+    };
+    adminPrincipals.get(caller) == ?true;
+  };
+
+  public query ({ caller }) func getIsAdminWithCount() : async AdminRoleChange {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view status with count");
+    };
+    {
+      adminCount;
+      principal = caller;
+      isAdmin = adminPrincipals.get(caller) == ?true;
+    };
+  };
+
+  public query ({ caller }) func getAdminRoleChangesWithCount() : async [AdminRoleChange] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view role changes with count");
+    };
+    adminPrincipals.toArray().map(func((principal, isAdmin)) { { adminCount; principal; isAdmin } });
+  };
+
+  public query ({ caller }) func getAdminSettings() : async AdminSettings {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view admin settings");
+    };
+    adminSettings;
+  };
+
+  public shared ({ caller }) func updateAdminSettings(newSettings : AdminSettings) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can update settings");
+    };
+    adminSettings := newSettings;
+  };
+
+  public query func isMaintenanceMode() : async Bool {
+    adminSettings.maintenanceMode;
+  };
+
+  public query func getSubscriptionFeeInCents() : async Nat {
+    adminSettings.subscriptionFeeInCents;
+  };
+
+  public shared ({ caller }) func updateSubscriptionFeeInCents(newFee : Nat) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can update subscription fee");
+    };
+    adminSettings := {
+      adminSettings with
+      subscriptionFeeInCents = newFee;
+    };
+  };
+
+  public query ({ caller }) func forceCheckSubscriptionStatuses() : async [(Principal, PaymentStatus)] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can view all payment statuses");
+    };
+    let _currentTime = Time.now();
+    let allExpired = subscriptionPayments.toArray();
+    allExpired.map(
+      func((principal, subscription)) {
+        // Keep original status even if expired (can handle that on frontend)
+        (principal, subscription.status);
+      }
+    );
+  };
+
+  public shared ({ caller }) func clearExpiredPendingStatuses() : async [(Principal, PaymentStatusUpdate)] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can clear expired payments");
+    };
+
+    let currentTime = Time.now();
+    let expiredEntries = subscriptionPayments.toArray().filter(
+      func((_, subPayment)) {
+        switch (subPayment.status) {
+          case (#pending { createdTimestamp }) {
+            currentTime - createdTimestamp > 172800000000000; // 2 days in nanoseconds
+          };
+          case (_) { false };
+        };
+      }
+    );
+    expiredEntries.map<(Principal, SubscriptionPayment), (Principal, PaymentStatusUpdate)>(
+      func((principal, subPayment)) {
+        let prevStatus = ?subPayment.status;
+        subscriptionPayments.remove(principal);
+        (principal, { principal; previousStatus = prevStatus; updatedStatus = null });
+      }
+    );
+  };
+
+  public shared ({ caller }) func confirmPaymentSuccessful(paymentSessionId : Text) : async Bool {
+    // Must be authenticated user
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can confirm payment");
+    };
+    if (not userProfiles.containsKey(caller)) {
+      Runtime.trap("Unauthorized: Must create user profile before confirming payment");
+    };
+
+    switch (subscriptionPayments.get(caller)) {
+      case (null) {
+        Runtime.trap("No pending payment found for this user");
+      };
+      case (?payment) {
+        switch (payment.status) {
+          case (#pending _) {
+            let paymentStatus = await Stripe.getSessionStatus(getStripeConfiguration(), paymentSessionId, transform);
+            switch (paymentStatus) {
+              case (#completed _) {
+                let updatedStatus : PaymentStatus = #completed { paymentSessionId };
+                subscriptionPayments.add(
+                  caller,
+                  {
+                    payment with
+                    status = updatedStatus;
+                  },
+                );
+                true;
+              };
+              case (_) { false };
+            };
+          };
+          case (#completed _) {
+            Runtime.trap("Payment already completed");
+          };
+        };
+      };
+    };
+  };
+
+  public query ({ caller }) func getAllPendingPaymentUsers() : async [(Principal, PaymentStatus)] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view pending payments");
+    };
+    let allPayments = subscriptionPayments.toArray();
+    let filtered = allPayments.filter(
+      func((_, subPayment)) {
+        switch (subPayment.status) {
+          case (#pending _) { true };
+          case (_) { false };
+        };
+      }
+    );
+    filtered.map(
+      func((principal, subPayment)) {
+        (principal, subPayment.status);
+      }
+    );
+  };
+
+  public query ({ caller }) func getPendingPaymentUsersCount() : async Nat {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view pending payment count");
+    };
+    let allPayments = subscriptionPayments.toArray();
+    let pendingPayments = allPayments.filter(
+      func((_, subPayment)) {
+        switch (subPayment.status) {
+          case (#pending _) { true };
+          case (_) { false };
+        };
+      }
+    );
+    pendingPayments.size();
+  };
+
+  // Admin User Management Endpoints
+
+  public query ({ caller }) func listAllUsers() : async [(Principal, UserProfile)] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can list all users");
+    };
+    userProfiles.entries().toArray();
+  };
+
+  public query ({ caller }) func searchUserByPrincipal(principalText : Text) : async ?(Principal, UserProfile) {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can search users");
+    };
+    let searchPrincipal = Principal.fromText(principalText);
+    switch (userProfiles.get(searchPrincipal)) {
+      case (null) { null };
+      case (?profile) { ?(searchPrincipal, profile) };
+    };
+  };
+
   // User Profile Management (required by frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
     };
+
+    // Enforce subscription payment after grace period
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     userProfiles.get(caller);
   };
 
@@ -106,29 +555,97 @@ actor {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
+
+    // Enforce subscription for non-admin callers
+    if (caller == user and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     userProfiles.get(user);
+  };
+
+  public query ({ caller }) func getUserSubscriptionStatus() : async Bool {
+    userProfiles.containsKey(caller);
+  };
+
+  public query ({ caller }) func getPrincipalPaymentStatus(principal : Principal) : async ?PaymentStatus {
+    // Only allow viewing own payment status or admin viewing any
+    if (caller != principal and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own payment status");
+    };
+
+    switch (subscriptionPayments.get(principal)) {
+      case (null) { null };
+      case (?payment) { ?payment.status };
+    };
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
-    userProfiles.add(caller, profile);
+
+    // Allow profile creation without payment (first time only)
+    if (not userProfiles.containsKey(caller)) {
+      let currentTime = Time.now();
+      let paymentStatus : PaymentStatus = #pending {
+        createdTimestamp = currentTime;
+      };
+      let gracePeriod = 172800000000000; // 2 days in nanoseconds
+
+      let subscriptionPayment : SubscriptionPayment = {
+        status = paymentStatus;
+        gracePeriodEnd = currentTime + gracePeriod;
+      };
+      subscriptionPayments.add(caller, subscriptionPayment);
+      userProfiles.add(caller, profile);
+    } else {
+      // For profile updates, enforce subscription
+      if (not hasValidSubscription(caller)) {
+        Runtime.trap("Subscription payment required: Grace period has expired");
+      };
+      userProfiles.add(caller, profile);
+    };
   };
 
   // Worker Profiles
   public query ({ caller }) func getWorkerProfile(worker : Principal) : async ?WorkerProfile {
-    // Public endpoint - anyone can view worker profiles for discovery
+    // Check maintenance mode for non-admins
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription for authenticated users
+    if (AccessControl.hasPermission(accessControlState, caller, #user) and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     workerProfiles.get(worker);
   };
 
   public query ({ caller }) func browseWorkers() : async [WorkerProfile] {
-    // Public endpoint - anyone can browse workers
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription for authenticated users
+    if (AccessControl.hasPermission(accessControlState, caller, #user) and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     workerProfiles.values().toArray();
   };
 
   public query ({ caller }) func browseWorkersByCategory(category : ServiceCategory) : async [WorkerProfile] {
-    // Public endpoint - anyone can browse workers by category
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription for authenticated users
+    if (AccessControl.hasPermission(accessControlState, caller, #user) and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     let filtered = workerProfiles.values().toArray().filter(
       func(profile : WorkerProfile) : Bool {
         profile.category == category;
@@ -138,18 +655,46 @@ actor {
   };
 
   public query ({ caller }) func browseWorkersByRateAscending() : async [WorkerProfile] {
-    // Public endpoint - anyone can browse workers sorted by rate
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription for authenticated users
+    if (AccessControl.hasPermission(accessControlState, caller, #user) and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     workerProfiles.values().toArray().sort(WorkerProfile.compareByHourlyRate);
   };
 
   public query ({ caller }) func browseWorkersByRateDescending() : async [WorkerProfile] {
-    // Public endpoint - anyone can browse workers sorted by rate
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription for authenticated users
+    if (AccessControl.hasPermission(accessControlState, caller, #user) and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     workerProfiles.values().toArray().sort(WorkerProfile.compareByHourlyRate).reverse();
   };
 
   public shared ({ caller }) func createWorkerProfile(profile : PartialWorkerProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can create worker profiles");
+    };
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
+    if (not userProfiles.containsKey(caller)) {
+      Runtime.trap("Unauthorized: Must complete user profile onboarding before creating worker profile");
     };
     if (workerProfiles.containsKey(caller)) {
       Runtime.trap("Worker profile already exists");
@@ -162,6 +707,8 @@ actor {
       serviceArea = profile.serviceArea;
       hourlyRate = profile.hourlyRate;
       isActive = profile.isActive;
+      phoneNumber = profile.phoneNumber;
+      profileImage = null;
     };
     workerProfiles.add(caller, fullProfile);
   };
@@ -169,6 +716,18 @@ actor {
   public shared ({ caller }) func updateWorkerProfile(profile : PartialWorkerProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can update worker profiles");
+    };
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
+    if (not userProfiles.containsKey(caller)) {
+      Runtime.trap("Unauthorized: Must complete user profile onboarding before updating worker profile");
     };
     switch (workerProfiles.get(caller)) {
       case (null) {
@@ -186,9 +745,87 @@ actor {
           serviceArea = profile.serviceArea;
           hourlyRate = profile.hourlyRate;
           isActive = profile.isActive;
+          phoneNumber = profile.phoneNumber;
+          profileImage = existingProfile.profileImage;
         };
         workerProfiles.add(caller, fullProfile);
       };
+    };
+  };
+
+  public shared ({ caller }) func uploadProfileImage(blob : Storage.ExternalBlob) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can upload profile images");
+    };
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
+    switch (workerProfiles.get(caller)) {
+      case (null) {
+        Runtime.trap("Worker profile does not exist");
+      };
+      case (?existingProfile) {
+        if (existingProfile.owner != caller) {
+          Runtime.trap("Unauthorized: Can only update your own worker profile");
+        };
+        let updatedProfile : WorkerProfile = {
+          existingProfile with
+          profileImage = ?blob;
+        };
+        workerProfiles.add(caller, updatedProfile);
+      };
+    };
+  };
+
+  public shared ({ caller }) func removeProfileImage() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can remove profile images");
+    };
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
+    switch (workerProfiles.get(caller)) {
+      case (null) {
+        Runtime.trap("Worker profile does not exist");
+      };
+      case (?existingProfile) {
+        if (existingProfile.owner != caller) {
+          Runtime.trap("Unauthorized: Can only update your own worker profile");
+        };
+        let updatedProfile : WorkerProfile = {
+          existingProfile with
+          profileImage = null;
+        };
+        workerProfiles.add(caller, updatedProfile);
+      };
+    };
+  };
+
+  public query ({ caller }) func getWorkerProfileImage(worker : Principal) : async ?Storage.ExternalBlob {
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription for authenticated users
+    if (AccessControl.hasPermission(accessControlState, caller, #user) and not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
+    switch (workerProfiles.get(worker)) {
+      case (null) { null };
+      case (?profile) { profile.profileImage };
     };
   };
 
@@ -197,6 +834,15 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can create bookings");
     };
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     if (not workerProfiles.containsKey(newBooking.worker)) {
       Runtime.trap("Worker does not exist");
     };
@@ -219,10 +865,18 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can update bookings");
     };
+    if (adminSettings.maintenanceMode and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Service unavailable: Application is in maintenance mode");
+    };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     switch (bookings.get(bookingId)) {
       case (null) { Runtime.trap("Booking does not exist") };
       case (?booking) {
-        // Allow both client and worker to update status
         if (caller != booking.client and caller != booking.worker) {
           Runtime.trap("Unauthorized: Only involved parties can update the booking");
         };
@@ -268,10 +922,15 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can view bookings");
     };
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     switch (bookings.get(bookingId)) {
       case (null) { Runtime.trap("Booking does not exist") };
       case (?booking) {
-        // Only allow involved parties to view the booking
         if (caller != booking.client and caller != booking.worker and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: Only involved parties can access booking details");
         };
@@ -284,7 +943,12 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can query bookings");
     };
-    // Return only bookings where caller is involved
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     let filtered = bookings.values().toArray().filter(
       func(booking : Booking) : Bool {
         booking.status == status and (booking.client == caller or booking.worker == caller);
@@ -297,7 +961,12 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can query bookings");
     };
-    // Only allow querying own bookings or if admin
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     if (caller != worker and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only query your own bookings");
     };
@@ -313,7 +982,12 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can query bookings");
     };
-    // Only allow querying own bookings or if admin
+
+    // Enforce subscription payment
+    if (not hasValidSubscription(caller)) {
+      Runtime.trap("Subscription payment required: Grace period has expired");
+    };
+
     if (caller != client and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only query your own bookings");
     };

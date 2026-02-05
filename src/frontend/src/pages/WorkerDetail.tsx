@@ -4,8 +4,9 @@ import { useAccountType } from '../hooks/useAccountType';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, DollarSign, ArrowLeft } from 'lucide-react';
+import { MapPin, DollarSign, ArrowLeft, Phone } from 'lucide-react';
 import CreateBookingForm from '../components/bookings/CreateBookingForm';
+import WorkerAvatar from '../components/workers/WorkerAvatar';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Principal } from '@dfinity/principal';
@@ -91,18 +92,23 @@ export default function WorkerDetail() {
         <div className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-2xl mb-2">{worker.displayName}</CardTitle>
-                  <Badge variant="secondary" className="text-base">
-                    {categoryLabel}
-                  </Badge>
+              <div className="flex items-start gap-4">
+                <WorkerAvatar worker={worker} size="xl" />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">{worker.displayName}</CardTitle>
+                      <Badge variant="secondary" className="text-base">
+                        {categoryLabel}
+                      </Badge>
+                    </div>
+                    {!worker.isActive && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        Inactive
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                {!worker.isActive && (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    Inactive
-                  </Badge>
-                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -115,6 +121,15 @@ export default function WorkerDetail() {
                 <MapPin className="w-5 h-5 mr-2 flex-shrink-0" />
                 <span>{worker.serviceArea}</span>
               </div>
+
+              {worker.phoneNumber && (
+                <div className="flex items-center text-muted-foreground">
+                  <Phone className="w-5 h-5 mr-2 flex-shrink-0" />
+                  <a href={`tel:${worker.phoneNumber}`} className="hover:text-primary transition-colors">
+                    {worker.phoneNumber}
+                  </a>
+                </div>
+              )}
 
               <div className="flex items-center text-2xl font-bold text-primary pt-4 border-t">
                 <DollarSign className="w-6 h-6" />

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
-import { Wrench } from 'lucide-react';
+import { Wrench, ShieldCheck } from 'lucide-react';
 
 export default function SignIn() {
   const { login, identity, loginStatus } = useInternetIdentity();
@@ -69,8 +69,16 @@ export default function SignIn() {
           </CardContent>
         </Card>
 
-        <div className="text-center text-sm text-muted-foreground">
-          <p>New to HandyConnect? Sign in to get started.</p>
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">New to HandyConnect? Sign in to get started.</p>
+          <Button
+            variant="link"
+            onClick={() => navigate({ to: '/admin-signin' })}
+            className="text-sm flex items-center gap-2 mx-auto"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Admin Sign In
+          </Button>
         </div>
       </div>
     </div>

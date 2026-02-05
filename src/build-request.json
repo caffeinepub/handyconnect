@@ -1,78 +1,75 @@
 {
   "kind": "build_request",
-  "title": "Convert HandyConnect into an installable PWA",
+  "title": "Add admin username/password login with specified credentials",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-19",
-      "text": "Add a Web App Manifest for HandyConnect and wire it into the app so the site is recognized as a PWA (name, short_name, start_url, display=standalone, theme_color, background_color, icons).",
-      "target": "frontend",
+      "id": "REQ-43",
+      "text": "Add a separate Admin Sign-In option that authenticates using a username and password (in addition to the existing Internet Identity admin sign-in flow), using these initial credentials exactly: username/id = \"adminumar\" and password = \"umar9945\".",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Make it a PWA"
+          "make admin login user id and password as mantioning ID-adminumar, password- umar9945"
         ]
       },
       "acceptanceCriteria": [
-        "A manifest file is present in the frontend static assets and is linked from the HTML entry point.",
-        "The manifest includes at least 192x192 and 512x512 icons and is valid JSON.",
-        "On Android Chrome, the site is eligible for \"Add to Home screen\" / \"Install app\"."
+        "The Admin Sign-In page provides a username/id + password form.",
+        "Submitting username \"adminumar\" with password \"umar9945\" successfully signs the user into the admin area (/app/admin).",
+        "Submitting any other username/password combination shows an English error message and does not grant admin access.",
+        "The existing Internet Identity-based admin sign-in flow continues to work as it does today."
       ]
     },
     {
-      "id": "REQ-20",
-      "text": "Implement a service worker that enables app-shell offline support by precaching the built static assets and serving the SPA entry (index.html) for navigation requests; include an offline fallback for uncached requests when the user is offline.",
-      "target": "frontend",
+      "id": "REQ-44",
+      "text": "Implement backend support for verifying the admin username/password and establishing an admin-authenticated session state that the frontend can use for route protection and for calling admin-only backend methods.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Make it a PWA"
+          "make admin login user id and password as mantioning ID-adminumar, password- umar9945"
         ]
       },
       "acceptanceCriteria": [
-        "A service worker file exists in frontend static assets and is registered by the app (without modifying immutable files).",
-        "After the first load, the app can be reopened while offline and renders the app shell (or an explicit offline fallback page) instead of a browser error.",
-        "Navigation to client-side routes while offline returns the SPA entry (index.html) rather than a network 404."
+        "There is a backend method that validates the submitted username/password and returns a success/failure response.",
+        "After successful username/password login, admin-only routes are accessible and admin-only backend methods can be called successfully from the frontend.",
+        "After unsuccessful username/password login, admin-only routes remain blocked."
       ]
     },
     {
-      "id": "REQ-21",
-      "text": "Update the HTML entry point to include required PWA metadata (manifest link, theme-color meta, and any necessary Apple PWA meta tags) and to register the service worker at runtime (without editing frontend/src/main.tsx or other immutable paths).",
-      "target": "frontend",
+      "id": "REQ-45",
+      "text": "Persist the admin username/password authentication configuration across canister upgrades with the initial default values set to username/id \"adminumar\" and password \"umar9945\".",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Make it a PWA"
+          "make admin login user id and password as mantioning ID-adminumar, password- umar9945"
         ]
       },
       "acceptanceCriteria": [
-        "frontend/index.html includes a <link rel=\"manifest\"> and a theme-color meta tag consistent with the app theme.",
-        "Service worker registration occurs from a non-immutable file (e.g., index.html) and succeeds in production builds.",
-        "PWA install prompt eligibility is achieved in Lighthouse (Installable criteria met)."
+        "After upgrading the canister, the configured admin username/password login still works with the same credentials."
       ]
     }
   ],
   "constraints": [
-    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything in frontend/src/components/ui.",
-    "Keep the backend architecture unchanged (single Motoko actor); no backend changes are required for PWA enablement."
+    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo).",
+    "Do not edit files under frontend/src/components/ui (read-only).",
+    "Use English for any user-facing text.",
+    "Preserve the exact provided credentials as the initial configured admin login: username/id \"adminumar\", password \"umar9945\"."
   ],
   "nonGoals": [
-    "Generating an Android APK or publishing to Google Play.",
-    "Adding push notifications or background sync.",
-    "Changing authentication (Internet Identity) behavior."
+    "Do not remove or replace the existing Internet Identity authentication flow for normal users.",
+    "Do not add third-party authentication providers (only Internet Identity is supported).",
+    "Do not introduce additional backend services or external databases."
   ],
   "imageRequirements": {
-    "required": [
-      "App icon in a bold, clean handyman/tools marketplace style (pwa-icon-192.dim_192x192.png)",
-      "App icon in a bold, clean handyman/tools marketplace style (pwa-icon-512.dim_512x512.png)",
-      "Maskable app icon variant with safe padding around the mark (pwa-icon-maskable-512.dim_512x512.png)"
-    ],
+    "required": [],
     "edits": []
   }
 }

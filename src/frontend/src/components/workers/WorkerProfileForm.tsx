@@ -6,11 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Upload, X, Loader2 } from 'lucide-react';
 import type { PartialWorkerProfile, ServiceCategory } from '../../backend';
+import { ExternalBlob } from '../../backend';
 
 interface WorkerProfileFormProps {
-  initialData?: PartialWorkerProfile;
-  onSubmit: (data: PartialWorkerProfile) => void;
+  initialData?: PartialWorkerProfile & { profileImage?: ExternalBlob };
+  onSubmit: (data: PartialWorkerProfile, imageFile?: File) => void;
   isLoading?: boolean;
 }
 
@@ -43,6 +46,9 @@ function createCategory(value: string, otherText?: string): ServiceCategory {
   }
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export default function WorkerProfileForm({ initialData, onSubmit, isLoading }: WorkerProfileFormProps) {
   const [displayName, setDisplayName] = useState(initialData?.displayName || '');
   const [categoryValue, setCategoryValue] = useState(getCategoryValue(initialData?.category));
@@ -52,7 +58,55 @@ export default function WorkerProfileForm({ initialData, onSubmit, isLoading }: 
   const [description, setDescription] = useState(initialData?.description || '');
   const [serviceArea, setServiceArea] = useState(initialData?.serviceArea || '');
   const [hourlyRate, setHourlyRate] = useState(initialData?.hourlyRate ? Number(initialData.hourlyRate).toString() : '');
+  const [phoneNumber, setPhoneNumber] = useState(initialData?.phoneNumber || '');
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    initialData?.profileImage?.getDirectURL() || null
+  );
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setImageError(null);
+
+    if (!file) {
+      setImageFile(null);
+      setImagePreview(initialData?.profileImage?.getDirectURL() || null);
+      return;
+    }
+
+    // Validate file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      setImageError('Please select a valid image file (JPG, PNG, or WebP)');
+      e.target.value = '';
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      setImageError('Image size must be less than 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+    const fileInput = document.getElementById('profileImage') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,9 +118,10 @@ export default function WorkerProfileForm({ initialData, onSubmit, isLoading }: 
       serviceArea,
       hourlyRate: BigInt(hourlyRate || '0'),
       isActive,
+      phoneNumber,
     };
 
-    onSubmit(profile);
+    onSubmit(profile, imageFile || undefined);
   };
 
   return (
@@ -80,6 +135,51 @@ export default function WorkerProfileForm({ initialData, onSubmit, isLoading }: 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
+            <Label htmlFor="profileImage">Profile Image</Label>
+            <div className="flex items-start gap-4">
+              {imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Profile preview" 
+                    className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 space-y-2">
+                <Input
+                  id="profileImage"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageChange}
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload a profile photo (JPG, PNG, or WebP, max 5MB)
+                </p>
+              </div>
+            </div>
+            {imageError && (
+              <Alert variant="destructive">
+                <AlertDescription>{imageError}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="displayName">Display Name *</Label>
             <Input
               id="displayName"
@@ -88,6 +188,21 @@ export default function WorkerProfileForm({ initialData, onSubmit, isLoading }: 
               placeholder="Your professional name"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Contact Phone Number *</Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="(555) 123-4567"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Clients will use this number to contact you about bookings
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -170,7 +285,14 @@ export default function WorkerProfileForm({ initialData, onSubmit, isLoading }: 
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Saving...' : initialData ? 'Update Profile' : 'Create Profile'}
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              initialData ? 'Update Profile' : 'Create Profile'
+            )}
           </Button>
         </form>
       </CardContent>

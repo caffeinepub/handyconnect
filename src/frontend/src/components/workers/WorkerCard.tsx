@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, DollarSign } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import type { WorkerProfile } from '../../backend';
+import WorkerAvatar from './WorkerAvatar';
 
 interface WorkerCardProps {
   worker: WorkerProfile;
@@ -24,18 +25,21 @@ export default function WorkerCard({ worker }: WorkerCardProps) {
   return (
     <Card className="hover:shadow-soft transition-shadow">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg">{worker.displayName}</CardTitle>
+        <div className="flex items-start gap-4">
+          <WorkerAvatar worker={worker} size="md" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className="text-lg truncate">{worker.displayName}</CardTitle>
+              {!worker.isActive && (
+                <Badge variant="outline" className="text-muted-foreground shrink-0">
+                  Inactive
+                </Badge>
+              )}
+            </div>
             <Badge variant="secondary" className="mt-2">
               {categoryLabel}
             </Badge>
           </div>
-          {!worker.isActive && (
-            <Badge variant="outline" className="text-muted-foreground">
-              Inactive
-            </Badge>
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

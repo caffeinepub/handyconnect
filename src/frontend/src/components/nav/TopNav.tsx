@@ -1,21 +1,36 @@
 import { Button } from '@/components/ui/button';
 import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useAccountType } from '../../hooks/useAccountType';
+import { useIsCallerAdmin, useIsAdminLoggedIn, useLogOutAdmin } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Menu, X, Briefcase, User, Home } from 'lucide-react';
+import { Menu, X, Briefcase, User, Home, Shield } from 'lucide-react';
 import { useState } from 'react';
 
 export default function TopNav() {
   const { identity, clear, loginStatus } = useInternetIdentity();
   const { accountType } = useAccountType();
+  const { data: isAdmin } = useIsCallerAdmin();
+  const { data: isAdminLoggedIn } = useIsAdminLoggedIn();
+  const logOutAdmin = useLogOutAdmin();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAuthenticated = !!identity;
+  const hasAdminAccess = isAdmin || isAdminLoggedIn;
 
   const handleLogout = async () => {
+    // If logged in via credentials, call backend logout
+    if (isAdminLoggedIn) {
+      try {
+        await logOutAdmin.mutateAsync();
+      } catch (error) {
+        console.error('Error logging out admin:', error);
+      }
+    }
+    
+    // Always clear Internet Identity session and cache
     await clear();
     queryClient.clear();
     navigate({ to: '/' });
@@ -34,6 +49,11 @@ export default function TopNav() {
       ]
     : [];
 
+  // Add admin link if user has admin access
+  const allNavLinks = hasAdminAccess 
+    ? [...navLinks, { to: '/app/admin', label: 'Admin', icon: Shield }]
+    : navLinks;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -51,7 +71,7 @@ export default function TopNav() {
           {/* Desktop Navigation */}
           {isAuthenticated && (
             <nav className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => {
+              {allNavLinks.map((link) => {
                 const Icon = link.icon;
                 return (
                   <Link
@@ -74,9 +94,9 @@ export default function TopNav() {
               <Button
                 onClick={handleLogout}
                 variant="outline"
-                disabled={loginStatus === 'logging-in'}
+                disabled={loginStatus === 'logging-in' || logOutAdmin.isPending}
               >
-                Sign Out
+                {logOutAdmin.isPending ? 'Signing out...' : 'Sign Out'}
               </Button>
             )}
           </div>
@@ -95,7 +115,7 @@ export default function TopNav() {
         {/* Mobile Navigation */}
         {isAuthenticated && mobileMenuOpen && (
           <nav className="md:hidden py-4 space-y-2 border-t">
-            {navLinks.map((link) => {
+            {allNavLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link
@@ -118,9 +138,9 @@ export default function TopNav() {
                 }}
                 variant="outline"
                 className="w-full"
-                disabled={loginStatus === 'logging-in'}
+                disabled={loginStatus === 'logging-in' || logOutAdmin.isPending}
               >
-                Sign Out
+                {logOutAdmin.isPending ? 'Signing out...' : 'Sign Out'}
               </Button>
             </div>
           </nav>
