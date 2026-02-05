@@ -160,6 +160,7 @@ export enum UserRole {
 export interface backendInterface {
     adminSignInWithCredentials(username: string, password: string): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    bootstrapAdminRole(token: string): Promise<boolean>;
     browseWorkers(): Promise<Array<WorkerProfile>>;
     browseWorkersByCategory(category: ServiceCategory): Promise<Array<WorkerProfile>>;
     browseWorkersByRateAscending(): Promise<Array<WorkerProfile>>;
@@ -171,6 +172,7 @@ export interface backendInterface {
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
     createWorkerProfile(profile: PartialWorkerProfile): Promise<void>;
     forceCheckSubscriptionStatuses(): Promise<Array<[Principal, PaymentStatus]>>;
+    getAdminRecoveryPhoneNumber(): Promise<string>;
     getAdminRoleChangeStatus(): Promise<AdminRoleChange>;
     getAdminRoleChanges(): Promise<Array<AdminRoleChange>>;
     getAdminRoleChangesWithCount(): Promise<Array<AdminRoleChange>>;
@@ -205,11 +207,13 @@ export interface backendInterface {
     listAllUsers(): Promise<Array<[Principal, UserProfile]>>;
     logOutAdmin(): Promise<boolean>;
     removeProfileImage(): Promise<void>;
+    resetAdminCredentialsByPhoneNumber(phoneNumber: string, newUsername: string, newPassword: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchUserByPrincipal(principalText: string): Promise<[Principal, UserProfile] | null>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateAdminCredentials(newUsername: string, newPassword: string): Promise<void>;
+    updateAdminRecoveryPhoneNumber(newPhoneNumber: string): Promise<void>;
     updateAdminSettings(newSettings: AdminSettings): Promise<void>;
     updateAdminSignInPageSettings(newSettings: AdminSignInPagePublicSettings): Promise<void>;
     updateBookingStatus(bookingId: bigint, newStatus: BookingStatus): Promise<void>;

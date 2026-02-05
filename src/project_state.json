@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 10,
-  "summary": "HandyConnect is a React + Motoko (Internet Computer) home-services marketplace MVP. Users authenticate with Internet Identity, complete onboarding (choose client/worker role, provide name, and optionally pay a one-time Stripe subscription fee immediately), then use role-specific experiences: clients browse worker profiles and create booking requests; workers create/manage service profiles (category, description, service area, hourly rate, phone, active status, optional profile image) and manage booking requests through a controlled status lifecycle. The backend enforces subscription access via a 2-day grace period: new users can create a profile without paying (payment status pending), but after the grace period expires, most authenticated endpoints trap until payment is completed; the frontend shows a reminder banner for pending users and a paywall screen for overdue users that initiates Stripe Checkout using an admin-configured subscription fee. Admins can manage users (search/list, grant/revoke admin with confirmations and last-admin protection), configure app settings (app name, maintenance mode, subscription fee), and configure Stripe. The frontend also supports PWA installability with a service worker and an offline fallback page.",
+  "projectStateVersion": 3,
+  "summary": "HandyConnect is a React + Motoko (Internet Computer) home-services marketplace MVP. Users authenticate with Internet Identity, complete onboarding by selecting an account type (client or worker) and saving a basic user profile, then optionally pay a one-time subscription fee via Stripe Checkout. Clients can browse active worker profiles and create booking requests; workers can create/update their service profiles (category, description, service area, hourly rate, active status, phone number) and manage bookings through a controlled status lifecycle (requested → accepted/declined; accepted → completed; requested → cancelled by client). The backend includes admin settings (maintenance mode, app name, subscription fee), Stripe configuration, user listing/search, and an admin sign-in page customization API. The frontend is a TanStack Router SPA using React Query for canister calls, includes route guards (auth/account-type/role/admin/maintenance), a responsive navigation shell with a payment reminder banner, payment success/failure routes, and PWA offline support via a service worker + offline fallback page.",
   "existing_features": [
     {
       "id": "IF-1",
@@ -11,49 +11,49 @@
         "AuthClient",
         "DelegationIdentity"
       ],
-      "description": "Provides an authentication context using @dfinity/auth-client that initializes/restores stored identities, supports interactive login against an II provider, and supports logout/clear with UI-friendly status flags.",
+      "description": "Provides an authentication context using @dfinity/auth-client that initializes/restores a stored identity, supports interactive login against an Internet Identity provider, and supports logout/clear with UI status flags for loading and errors.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-2",
-      "title": "Identity-scoped canister actor creation with access-control initialization",
+      "title": "Identity-scoped canister actor creation and cache refresh",
       "synonyms": [
         "useActor",
         "identity-bound actor",
         "actor bootstrap"
       ],
-      "description": "Creates an anonymous canister actor when unauthenticated and an identity-bound actor when authenticated. When authenticated, it calls the backend initialization endpoint (_initializeAccessControlWithSecret) using a secret parameter and then invalidates/refetches dependent React Query caches.",
+      "description": "Creates an anonymous canister actor when unauthenticated and an identity-bound actor when authenticated. When the identity changes, it invalidates and refetches non-actor React Query caches so UI data rehydrates under the new principal.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-3",
-      "title": "Secure URL-hash secret handling with session persistence",
+      "title": "Secret parameter handling via URL hash + sessionStorage",
       "synonyms": [
-        "admin token in hash",
-        "sessionStorage secret",
-        "URL hash clearing"
+        "caffeineAdminToken",
+        "URL hash secret",
+        "sessionStorage secret persistence"
       ],
-      "description": "Utilities read sensitive parameters from the URL hash, persist them in sessionStorage, and remove them from the URL via history.replaceState to reduce leakage; used for admin bootstrap secret handling.",
+      "description": "Utilities read secrets from the URL hash fragment, persist them in sessionStorage for the session, and remove them from the URL via history.replaceState to reduce leakage; used for access-control initialization.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-4",
-      "title": "Role-based access control with first-admin bootstrap (Motoko)",
+      "title": "Role-based access control with bootstrap admin secret (Motoko)",
       "synonyms": [
         "AccessControl",
         "MixinAuthorization",
-        "admin bootstrap"
+        "first-admin bootstrap"
       ],
-      "description": "Implements user roles (#admin/#user/#guest). The first principal can become admin when the provided secret matches an environment token; others become users. Exposes role checks, admin-only role assignment, and isCallerAdmin API.",
+      "description": "Implements roles (#admin/#user/#guest) stored per principal. An initialization endpoint registers the first admin when a user-provided secret matches an environment token; otherwise the caller becomes a #user. Exposes role queries and admin checks.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-5",
-      "title": "Route protection (auth, onboarding, role, admin, maintenance)",
+      "title": "Route protection and role-based gating",
       "synonyms": [
         "RequireAuth",
         "RequireAccountType",
@@ -61,171 +61,208 @@
         "RequireAdmin",
         "RequireMaintenanceGate"
       ],
-      "description": "Uses TanStack Router and guard components to protect routes by authentication, onboarding completion (account type), required role (client/worker), admin role, and maintenance mode (non-admins blocked when enabled).",
+      "description": "Uses TanStack Router and guard components to protect routes by authentication, onboarding completion (account type present), role (client/worker), admin access, and maintenance mode (non-admin users blocked when enabled).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-6",
-      "title": "Role-aware navigation shell with logout and payment reminder banner",
+      "title": "Responsive navigation shell with role-aware links and logout",
       "synonyms": [
         "AppShell",
         "TopNav",
-        "pending payment banner"
+        "responsive navigation"
       ],
-      "description": "Provides a consistent layout with responsive top navigation (role-adaptive links + admin link when applicable), footer, and a banner shown for users with pending subscription payment that links to the subscription paywall. Logout clears identity and React Query cache.",
+      "description": "Provides a consistent layout with responsive top navigation and role-adaptive links (client/worker). Logout clears the Internet Identity session and clears the React Query cache; admin logout additionally calls a backend admin logout endpoint when applicable.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-7",
-      "title": "Onboarding flow with skip-payment option and Stripe redirect",
+      "title": "Onboarding flow (role selection, name entry, optional payment step)",
       "synonyms": [
         "OnboardingAccountType",
         "role selection",
-        "name entry",
-        "skip payment"
+        "name capture"
       ],
-      "description": "A multi-step onboarding flow to choose account type and enter name, then proceeds to payment. Users may skip payment during onboarding; profile is still created and the UI informs them payment must be completed within 2 days.",
+      "description": "Multi-step onboarding flow that stores role/name in sessionStorage for continuity. Users can proceed to Stripe payment or skip payment and still create a basic profile (with a 2-day payment grace period enforced by the backend).",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-8",
-      "title": "Admin-managed subscription fee (USD input) with backend persistence and frontend fallback",
+      "title": "Subscription fee configuration and retrieval",
       "synonyms": [
         "subscriptionFeeInCents",
-        "AppSettingsPanel subscription fee",
-        "dynamic subscription pricing"
+        "useGetSubscriptionFee",
+        "admin subscription pricing"
       ],
-      "description": "Admin settings include subscriptionFeeInCents. Admin UI displays and validates a USD money input, saving via the existing updateAdminSettings flow. Frontend payment initiation uses the backend fee when available, otherwise falls back to a default (e.g., $9.99).",
-      "reqIds": [
-        "REQ-37",
-        "REQ-42"
-      ],
+      "description": "Admin-managed subscription fee is stored in backend admin settings and fetched by the frontend for onboarding and paywall pricing; frontend uses a default fallback fee if backend value is unavailable.",
+      "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-9",
-      "title": "Stripe configuration management and enablement checks",
+      "title": "Stripe configuration management and configured-state checks",
       "synonyms": [
         "StripeConfiguration",
         "isStripeConfigured",
         "setStripeConfiguration"
       ],
-      "description": "Admins can configure Stripe (secret key + allowed countries). The frontend checks whether Stripe is configured to enable or disable payment initiation in onboarding and paywall flows.",
+      "description": "Admins can configure Stripe (secret key + allowed countries). The frontend checks whether Stripe is configured before enabling payment initiation.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-10",
-      "title": "Stripe Checkout session creation via canister HTTPS outcalls",
+      "title": "Stripe Checkout session creation via ICP HTTPS outcalls",
       "synonyms": [
         "createCheckoutSession",
         "ShoppingItem",
-        "http-outcalls"
+        "http_request outcall"
       ],
-      "description": "Creates Stripe Checkout sessions in the backend via HTTPS outcalls. The frontend constructs success/cancel URLs, requests a session, parses the JSON response, and redirects to Stripe-hosted Checkout.",
+      "description": "Backend creates Stripe Checkout sessions using HTTPS outcalls; frontend constructs success/cancel URLs, requests session creation, parses returned JSON for session URL, and redirects the user to Stripe-hosted Checkout.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-11",
-      "title": "Payment success/failure routing with session verification and backend confirmation",
+      "title": "Payment success/failure routing with verification + confirmation",
       "synonyms": [
         "PaymentSuccess",
         "PaymentFailure",
         "getStripeSessionStatus",
         "confirmPaymentSuccessful"
       ],
-      "description": "After Stripe redirect, the app verifies the session status with the backend, then confirms payment to mark the principal as paid. Users are redirected to onboarding continuation or the appropriate dashboard; a failure page supports retry.",
-      "reqIds": [
-        "REQ-39"
-      ],
+      "description": "After Stripe redirect, the frontend verifies the session status with the backend and then confirms payment to mark the principal as paid. Failure route supports retrying onboarding/payment.",
+      "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-12",
-      "title": "Subscription tracking with 2-day grace period, enforcement, and overdue paywall",
+      "title": "Subscription tracking with grace period and enforcement",
       "synonyms": [
         "PaymentStatus",
         "SubscriptionPayment",
-        "SubscriptionPaywall",
-        "GlobalErrorHandler"
+        "2-day grace period"
       ],
-      "description": "Backend maintains per-principal subscription payment state (pending/completed) with a grace period end timestamp. Most authenticated endpoints enforce valid subscription after grace period and trap otherwise. Frontend shows a dedicated paywall for overdue users and globally redirects subscription errors to that paywall.",
-      "reqIds": [
-        "REQ-40",
-        "REQ-41"
-      ],
+      "description": "Backend creates a pending subscription payment record on first profile save with a 2-day grace-period end timestamp. Many authenticated endpoints trap when grace expires and payment is not completed; frontend includes a dedicated paywall and a global unhandled rejection handler to redirect subscription errors to the paywall.",
+      "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-13",
-      "title": "Admin user management (list/search users and grant/revoke admin)",
+      "title": "Maintenance mode setting and maintenance gate",
       "synonyms": [
-        "UserControlPanel",
-        "listAllUsers",
-        "searchUserByPrincipal",
-        "grantAdminRole",
-        "revokeAdminRole"
+        "AdminSettings.maintenanceMode",
+        "RequireMaintenanceGate",
+        "MaintenanceScreen"
       ],
-      "description": "Admin UI supports listing all users, searching by Principal with validation, copying Principal IDs, viewing admin status badges, and granting/revoking admin roles with confirmation dialogs and last-admin protection (canRevokeAdmin).",
+      "description": "Admins can toggle maintenance mode. When enabled, non-admin users are blocked from using the app and shown a maintenance screen with a sign-out option; admins retain access.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-14",
-      "title": "Maintenance mode setting and non-admin maintenance gate",
+      "title": "Admin dashboard with user listing and principal search",
       "synonyms": [
-        "AdminSettings.maintenanceMode",
-        "MaintenanceScreen",
-        "RequireMaintenanceGate"
+        "AdminDashboard",
+        "UserControlPanel",
+        "listAllUsers",
+        "searchUserByPrincipal"
       ],
-      "description": "Admins can toggle maintenance mode. When enabled, non-admin users are blocked from using the app and shown a maintenance screen; admins can still access admin routes.",
+      "description": "Admin UI supports listing all registered users and searching for a user by Principal ID with input validation and copy-to-clipboard. Backend restricts these endpoints to admins.",
       "reqIds": [],
       "version": 1
     },
     {
       "id": "IF-15",
+      "title": "Admin application settings management (app name, subscription fee, maintenance)",
+      "synonyms": [
+        "getAdminSettings",
+        "updateAdminSettings",
+        "AppSettingsPanel"
+      ],
+      "description": "Admin UI reads and updates backend admin settings including app name, subscription fee in cents (edited as USD in the UI), and maintenance mode, with dirty-state tracking and validation.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-16",
+      "title": "Admin sign-in page customization (public settings)",
+      "synonyms": [
+        "AdminSignInPagePublicSettings",
+        "getAdminSignInPageSettings",
+        "updateAdminSignInPageSettings"
+      ],
+      "description": "Backend exposes public admin sign-in page text settings (title/subtitle/helper text) without requiring admin auth; admins can update these settings via a protected endpoint and UI panel.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-17",
+      "title": "Admin credential reset UI and mutation hook (phone-based recovery)",
+      "synonyms": [
+        "AdminCredentialResetDialog",
+        "useResetAdminCredentialsByPhoneNumber",
+        "credential recovery"
+      ],
+      "description": "Frontend provides a dialog accessible from the Admin Sign In page allowing entry of recovery phone number, new username, new password, and password confirmation; it calls a backend reset endpoint and invalidates admin auth queries on success.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-18",
+      "title": "Backend admin credential reset endpoint with basic cooldown",
+      "synonyms": [
+        "resetAdminCredentialsByPhoneNumber",
+        "adminRecoveryPhoneNumber",
+        "rate limiting"
+      ],
+      "description": "Backend stores an admin recovery phone number and implements a phone-number-based admin credential reset endpoint that returns a generic boolean result and enforces a cooldown between attempts.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-19",
       "title": "Worker profile management (create/update)",
       "synonyms": [
         "createWorkerProfile",
         "updateWorkerProfile",
         "WorkerProfileForm"
       ],
-      "description": "Workers can create and edit their service profile including display name, category (including other with text), description, service area, hourly rate, active visibility flag, and phone number. Backend enforces authentication, maintenance checks, onboarding completion, and subscription validity.",
+      "description": "Workers can create and edit their service profile including display name, category (including #other with custom text), description, service area, hourly rate, active visibility flag, and phone number.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-16",
-      "title": "Worker profile images (upload/remove) with progress and avatar fallback",
+      "id": "IF-20",
+      "title": "Worker profile images stored as ExternalBlob (upload/remove) with progress UI",
       "synonyms": [
         "ExternalBlob",
         "uploadProfileImage",
         "removeProfileImage",
         "WorkerAvatar"
       ],
-      "description": "Workers can upload/remove profile images stored as ExternalBlob. UI validates file type/size, supports preview, tracks upload progress, and renders avatars using direct URLs with initials/icon fallback.",
+      "description": "Workers can upload/remove profile images stored as ExternalBlob. The UI validates file type/size, supports previews, shows upload progress, and renders avatars via direct blob URLs with initials/icon fallback.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-17",
-      "title": "Worker discovery and detail pages with client booking CTA",
+      "id": "IF-21",
+      "title": "Worker discovery and detail pages with filtering/sorting and booking CTA",
       "synonyms": [
         "BrowseWorkers",
         "WorkerCard",
         "WorkerDetail"
       ],
-      "description": "Authenticated users can browse worker profiles, filter/sort in the UI, and view detailed worker pages. Clients can initiate a booking request from the worker detail page when the worker is active.",
+      "description": "Authenticated users browse worker profiles and filter by category and sort by hourly rate. Worker detail pages show service details and (for clients) allow initiating a booking request when the worker is active.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-18",
-      "title": "Bookings (create, view, list, and permissioned status transitions)",
+      "id": "IF-22",
+      "title": "Bookings (create, view, list, and controlled status transitions)",
       "synonyms": [
         "createBookingRequest",
         "getBooking",
@@ -233,62 +270,78 @@
         "getBookingsByWorker",
         "updateBookingStatus"
       ],
-      "description": "Clients can create booking requests for workers. Both parties can view booking details; status transitions are enforced (client cancel requested; worker accept/decline requested; worker complete accepted). Frontend provides booking lists, detail view, and status action buttons with badges.",
+      "description": "Clients can create booking requests for workers. Both client and worker can view booking details. Status transitions are permissioned and validated in the backend; frontend provides booking lists, a booking detail view, and status action buttons.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-19",
-      "title": "Role-based dashboards with booking grouping and worker profile completeness indicator",
+      "id": "IF-23",
+      "title": "Role-based dashboards (client and worker) with booking grouping and worker profile completeness indicator",
       "synonyms": [
         "ClientDashboard",
         "WorkerDashboard",
         "BookingList"
       ],
-      "description": "Client dashboard groups bookings into upcoming/active vs past. Worker dashboard groups bookings by status and displays a profile completeness indicator with a CTA to complete/edit the profile.",
+      "description": "Client dashboard groups bookings into upcoming/active vs past. Worker dashboard groups bookings by status and shows a profile completeness indicator with a CTA to complete/edit the worker profile.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-20",
+      "id": "IF-24",
+      "title": "Blob-storage maintenance utilities (gateway auth, blob GC tooling)",
+      "synonyms": [
+        "MixinStorage",
+        "_caffeineStorageUpdateGatewayPrincipals",
+        "_caffeineStorageBlobsToDelete"
+      ],
+      "description": "Backend includes blob-storage helper endpoints for updating authorized gateway principals, listing dead blobs for deletion, confirming deletion, and topping up cycles via a cashier canister principal.",
+      "reqIds": [],
+      "version": 1
+    },
+    {
+      "id": "IF-25",
       "title": "PWA installability and offline support",
       "synonyms": [
-        "manifest",
+        "manifest.webmanifest",
         "service worker",
         "offline.html"
       ],
-      "description": "Implements an installable PWA with a webmanifest and icons, registers a service worker that caches an app shell/static assets, provides SPA navigation fallback, and serves a branded offline page when network requests fail.",
+      "description": "Implements an installable PWA with a webmanifest and icons, a service worker that caches app shell/static assets and provides SPA navigation fallback, and a branded offline page for offline scenarios.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-21",
-      "title": "State migration for new subscription settings and payment tracking",
+      "id": "IF-26",
+      "title": "State migration for admin credentials + recovery phone and worker blob compatibility",
       "synonyms": [
         "backend/migration.mo",
-        "subscriptionPayments initialization"
+        "upgrade migration"
       ],
-      "description": "Includes a migration module that adapts older persisted state by adding subscriptionFeeInCents to adminSettings (default 999) and initializing an empty subscriptionPayments map.",
+      "description": "Includes a migration module executed on upgrade that carries forward existing actor state, seeds default admin credentials when missing, adds an admin recovery phone number field, and maps worker profile blob fields into the new state structure.",
       "reqIds": [],
       "version": 1
     },
     {
-      "id": "IF-22",
-      "title": "HTTP outcall helpers with deterministic response transform",
-      "synonyms": [
-        "OutCall.httpGetRequest",
-        "OutCall.httpPostRequest",
-        "transform"
-      ],
-      "description": "Shared HTTP GET/POST helpers allocate cycles, attach headers (including a time-based idempotency key for POST), decode UTF-8 bodies, and use a transform function to strip response headers for deterministic canister responses (used by Stripe).",
-      "reqIds": [],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-separate-admin-sign-in-option-that-authenticates-using-a-username-and-password-in-addition-to-the-existing-internet-identity-admin-sign-in-flow-using-these-initial-credentials-exactly-username-id-adminumar-and-password-umar9945",
-      "title": "Add a separate Admin Sign-In option that authenticates using a username and password (in addition to the existing Internet Identity admin sign-in flow), using these initial credentials exactly: username/id = \"adminumar\" and password = \"umar9945\".",
+      "id": "feature-eliminate-duplicate-react-query-internet-identity-provider-initialization-by-ensuring-the-app-only-has-one-queryclientprovider-and-one-internetidentityprovider-active-at-runtime-without-modifying-any-frontend-immutable-paths",
+      "title": "Eliminate duplicate React Query + Internet Identity provider initialization by ensuring the app only has one QueryClientProvider and one InternetIdentityProvider active at runtime, without modifying any frontend immutable paths.",
       "reqIds": [
-        "REQ-43"
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-admin-sign-in-ui-to-support-secure-ii-based-admin-access-allow-the-user-to-sign-in-with-internet-identity-then-if-they-are-authenticated-but-not-an-admin-present-a-token-based-admin-bootstrap-form-that-calls-the-new-backend-bootstrap-endpoint-and-redirects-to-app-admin-upon-success",
+      "title": "Update the Admin Sign-In UI to support secure II-based admin access: allow the user to sign in with Internet Identity, then if they are authenticated but not an admin, present a token-based admin bootstrap form that calls the new backend bootstrap endpoint and redirects to /app/admin upon success.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-admin-route-protection-uses-a-single-correct-source-of-truth-for-admin-status-derived-from-internet-identity-and-that-app-admin-access-works-end-to-end-after-a-successful-bootstrap-on-a-fresh-identity",
+      "title": "Ensure admin route protection uses a single, correct source of truth for admin status derived from Internet Identity, and that /app/admin access works end-to-end after a successful bootstrap on a fresh identity.",
+      "reqIds": [
+        "REQ-5"
       ],
       "version": 1
     }
@@ -296,51 +349,52 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add separate admin login via username/password (requested hardcoded credentials: ID=adminumar, password=umar9945) instead of/alongside Internet Identity-based admin access.",
+      "summary": "Set up secure Internet Identity–based admin access so the user can log into the admin portal (admin auth/role assignment via II rather than broken credentials flow).",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-3",
-      "summary": "Implement backend support for verifying the admin username/password and establishing an admin-authenticated session state that the frontend can use for route protection and for calling admin-only backend methods.",
+      "id": "AR-2",
+      "summary": "Add a secure Internet Identity (II) admin bootstrap endpoint in the Motoko backend that can elevate the caller to admin using a secret token, without requiring the caller to already be an admin, and without trapping when the token is not configured.",
       "reqIds": [
-        "REQ-44"
+        "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-4",
-      "summary": "Persist the admin username/password authentication configuration across canister upgrades with the initial default values set to username/id \"adminumar\" and password \"umar9945\".",
+      "id": "AR-3",
+      "summary": "Fix the current admin credential sign-in behavior in the backend so it does not fail due to requiring the caller to already be admin when assigning admin role (i.e., make the sign-in function capable of elevating a non-admin caller when authentication is successful), or explicitly disable credential-based elevation in favor of II token bootstrap and reflect that in the response behavior.",
       "reqIds": [
-        "REQ-45"
+        "REQ-2"
       ],
       "status": "pending"
     }
   ],
   "architectural_notes": [
-    "ICP canister backend written in Motoko; the main actor composes functionality via mixins (authorization + blob-storage maintenance utilities) and a migration hook.",
-    "Authorization is centralized in an AccessControl module with roles (#admin/#user/#guest) and a first-admin bootstrap flow gated by an env token plus a user-provided secret.",
+    "ICP canister backend written in Motoko; the main actor composes functionality via mixins (authorization and blob-storage utilities) and a migration hook (upgrade-safe state transformation).",
+    "Authorization is centralized in an AccessControl module with roles (#admin/#user/#guest) and a bootstrap initialization flow gated by an environment token (CAFFEINE_ADMIN_TOKEN) passed from the frontend via a URL-hash secret.",
     "Frontend is a React SPA using TanStack Router with composable route guards (RequireAuth/RequireAccountType/RequireRole/RequireAdmin/RequireMaintenanceGate).",
-    "Backend calls are wrapped with TanStack React Query hooks (queries + mutations) with targeted cache invalidation after writes.",
-    "Stripe integration uses ICP HTTPS outcalls (IC.http_request) via shared GET/POST helpers and a response transform that strips headers for determinism.",
-    "Subscription enforcement is implemented server-side with per-principal payment status and a grace-period expiration check; admins bypass subscription checks.",
-    "Blob/profile-image support uses an ExternalBlob type with direct URL rendering and upload-progress callbacks in the UI.",
-    "PWA support includes a manifest, service worker app-shell caching, SPA navigation fallback, and a branded offline page.",
-    "User requested a distinct admin login page using username/password credentials (separate from Internet Identity / AccessControl role-based admin)."
+    "Backend calls are wrapped in @tanstack/react-query hooks (queries + mutations) with targeted invalidation after writes (e.g., settings changes, bookings updates, profile edits).",
+    "Stripe integration is implemented via ICP HTTPS outcalls (IC.http_request) with a deterministic transform that strips headers to keep responses deterministic.",
+    "Subscription enforcement is implemented server-side using per-principal payment status and a grace-period timestamp; admins bypass subscription checks.",
+    "Blob/profile-image support uses an ExternalBlob type (ICP storage primitives) with direct URL rendering in the UI and upload progress callbacks on the client.",
+    "Admin settings are split into (a) admin-only operational settings (maintenance/app name/subscription fee) and (b) public, non-sensitive admin sign-in page text settings retrievable without admin auth.",
+    "PWA support includes a webmanifest, service worker caching with SPA navigation fallback, and a branded offline page.",
+    "Frontend design system uses Tailwind + shadcn/ui primitives (cards, dialogs, tables, alerts, inputs, etc.) for consistent styling."
   ],
   "known_issues": [
-    "React providers are duplicated: QueryClientProvider and InternetIdentityProvider wrap the app in both frontend/src/main.tsx and frontend/src/App.tsx, creating multiple QueryClient/auth contexts and potentially inconsistent caching/auth behavior.",
-    "Backend admin tracking appears inconsistent: adminCount starts at 1 but adminPrincipals is initially empty; the bootstrapped admin may not appear in admin role change listings, leading to inaccurate admin status indicators.",
-    "Access-control bootstrap can be bricked if the first authenticated caller initializes without the correct secret: they become #user and later secret attempts won’t elevate them (initialize is no-op for already-registered principals), potentially leaving no admin.",
-    "Authenticated actor creation always calls _initializeAccessControlWithSecret; if CAFFEINE_ADMIN_TOKEN is unset, the canister traps and breaks authenticated usage.",
-    "Stripe checkout body construction incorrectly uses shipping_address_collection[allowed_countries][0] for every country, overwriting entries instead of producing an indexed array.",
-    "Stripe session status detection and client_reference_id extraction are done via brittle substring checks/splitting rather than JSON parsing.",
-    "Service worker precaching discovers assets by regex-parsing index.html, which is fragile with hashed/chunked builds and may miss required resources.",
-    "BookingDetail treats any getBooking fetch error as “Access Denied”, which can mislead users when the error is transient (network/canister error) or subscription-related.",
-    "Blob-storage cashier env var key is spelled CAFFFEINE_STORAGE_CASHIER_PRINCIPAL (triple 'F'); mismatched deployment configuration will cause runtime traps.",
-    "Security risk: request to hardcode an admin username/password (adminumar/umar9945). This is insecure and conflicts with the current Internet Identity + role-based AccessControl model."
+    "Frontend provider duplication: frontend/src/main.tsx wraps App with QueryClientProvider and InternetIdentityProvider, while frontend/src/App.tsx also creates its own QueryClientProvider and InternetIdentityProvider; this can cause split caches, inconsistent identity state, and double initialization.",
+    "Admin credential login appears broken: backend/adminSignInWithCredentials calls AccessControl.assignRole, which requires the caller to already be admin; this prevents credential-based elevation from #user/#guest to #admin as implemented.",
+    "Admin credential storage is insecure: backend stores admin username/password in plaintext in canister state and migration also seeds plaintext defaults; no hashing/salting is implemented.",
+    "Admin reset cooldown is global (single lastResetAttemptTime) rather than per-principal/IP; any caller can effectively rate-limit all resets (DoS) and the policy is coarse.",
+    "Access control bootstrap can be bricked: if the first authenticated caller initializes without the correct secret, they are stored as #user and later calls won’t promote them, potentially leaving no admin.",
+    "Authenticated actor creation always calls _initializeAccessControlWithSecret; if CAFFEINE_ADMIN_TOKEN is unset on the canister, authenticated usage traps, breaking the app for signed-in users.",
+    "Backend includes adminCount/adminPrincipals and related role-change query APIs, but these are not updated when admin roles change via AccessControl; outputs can be incorrect or empty.",
+    "Service worker precaching discovers assets by regex-parsing index.html, which is brittle with hashed/chunked builds and may miss required resources.",
+    "BrowseWorkers UI filtering does not support the backend’s #other(Text) category (the filter builder returns null for “other”), so “other” workers can’t be filtered by category.",
+    "Route gating vs subscription enforcement: getCallerUserProfile traps when grace period is expired; components that rely on it (e.g., RequireAccountType) do not explicitly handle query errors, which may lead to confusing redirects or blank states depending on React Query error handling."
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "gameProjectType": "none",
   "projectName": "HandyConnect",
   "clarification_mode": "instant",

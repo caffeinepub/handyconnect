@@ -1,15 +1,15 @@
 {
   "frontend/src/index.css": "Global styles with warm earthy OKLCH color palette (terracotta primary, sage secondary) and typography base styles for HandyConnect theme.",
   "frontend/tailwind.config.js": "Tailwind configuration with custom fonts (Poppins display, Inter sans), extended color tokens, and consistent design system for HandyConnect.",
-  "frontend/src/App.tsx": "Main application component with TanStack Router setup including new admin sign-in route (/admin-signin), global error handler for subscription errors, and all protected routes with proper guards.",
-  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations including credential-based admin authentication hooks (useAdminSignInWithCredentials, useIsAdminLoggedIn, useLogOutAdmin) with proper cache invalidation, removing unused grantAdminRole and revokeAdminRole hooks.",
+  "frontend/src/App.tsx": "Main application component with TanStack Router setup, removed duplicate QueryClientProvider and InternetIdentityProvider wrappers (now only in main.tsx), includes all routes with proper guards and global error handler for subscription errors.",
+  "frontend/src/hooks/useQueries.ts": "React Query hooks for all backend operations including new useGetAdminSignInPageWithCredentialsCheck and useBootstrapAdminRole hooks for Internet Identity admin token bootstrap, with proper cache invalidation on success.",
   "frontend/src/hooks/useAccountType.ts": "Helper hook to derive and expose the current user's account type using AccountType enum from their profile.",
   "frontend/src/components/auth/RequireAuth.tsx": "Route guard component that redirects unauthenticated users to sign-in page.",
   "frontend/src/components/auth/RequireAccountType.tsx": "Route guard that ensures users have completed onboarding (chosen account type) before accessing protected routes.",
   "frontend/src/components/auth/RequireRole.tsx": "Role-based route guard that redirects users attempting to access role-inappropriate pages, using AccountType enum.",
   "frontend/src/components/auth/AccessDeniedScreen.tsx": "Error screen displayed when users attempt to access unauthorized content (e.g., booking details they're not involved in).",
   "frontend/src/components/layout/AppShell.tsx": "Main layout wrapper with navigation, content area, footer, and new payment reminder banner for users with pending subscription status linking to paywall page.",
-  "frontend/src/components/nav/TopNav.tsx": "Responsive top navigation bar with role-adaptive links, admin link visibility for both admin types, and logout handling that calls backend logOutAdmin for credential-based sessions.",
+  "frontend/src/components/nav/TopNav.tsx": "Responsive top navigation bar with role-adaptive links, admin link visibility based on Internet Identity-derived admin status, and simplified logout handling that clears identity and React Query cache.",
   "frontend/src/components/workers/WorkerCard.tsx": "Worker card component displaying worker summary with avatar, contact info, and link to full profile.",
   "frontend/src/components/workers/WorkerProfileForm.tsx": "Form component for creating/editing worker profiles with phone number field, profile image upload with validation (file type and size), and progress tracking.",
   "frontend/src/components/bookings/BookingStatusBadge.tsx": "Small UI component displaying booking status with appropriate styling, using BookingStatus enum values.",
@@ -31,7 +31,7 @@
   "frontend/src/components/workers/WorkerAvatar.tsx": "Reusable avatar component that displays worker profile images with fallback to initials or icon, supporting multiple sizes.",
   "frontend/src/pages/PaymentSuccess.tsx": "Payment success page that verifies Stripe session status, calls backend confirmation endpoint to record successful subscription payment, and routes user back to onboarding or appropriate dashboard based on profile state.",
   "frontend/src/pages/PaymentFailure.tsx": "Payment failure/cancel page explaining payment was not completed and offering retry path back to onboarding.",
-  "frontend/src/components/auth/RequireAdmin.tsx": "Route guard component that allows access if user is admin via Internet Identity OR has active credential-based admin session, showing loading state and access denied screen appropriately.",
+  "frontend/src/components/auth/RequireAdmin.tsx": "Route guard component that checks admin status using only Internet Identity-derived useIsCallerAdmin hook, showing loading state and AccessDeniedScreen appropriately.",
   "frontend/src/components/auth/RequireMaintenanceGate.tsx": "Gate component that checks maintenance mode and admin status, showing MaintenanceScreen to non-admin users when maintenance is enabled.",
   "frontend/src/components/maintenance/MaintenanceScreen.tsx": "Friendly maintenance message screen with sign-out option for non-admin users when application is in maintenance mode.",
   "frontend/src/components/admin/UserControlPanel.tsx": "Admin panel for user management with Principal validation, user search functionality, and user list display with copy-to-clipboard for Principal IDs, simplified to remove admin role grant/revoke features that are not supported by the credential-based admin system.",
@@ -40,5 +40,6 @@
   "frontend/src/components/admin/AdminQueryState.tsx": "Reusable loading and error state component for admin panels with spinner, error message display, and retry action button.",
   "frontend/src/components/admin/AdminRoleConfirmDialog.tsx": "Confirmation dialog for admin role grant/revoke actions with warning messages, blocking state for last-admin protection, and contextual styling.",
   "frontend/src/pages/SubscriptionPaywall.tsx": "Dedicated paywall screen for overdue users explaining grace period expiration, displaying backend-configured subscription fee with fallback, and providing payment continuation action via Stripe Checkout.",
-  "frontend/src/pages/AdminSignIn.tsx": "Dedicated admin sign-in page with both username/password form and Internet Identity authentication options, checking both admin status types and redirecting to dashboard on success."
+  "frontend/src/pages/AdminSignIn.tsx": "Admin sign-in page with username/password form (conditionally shown based on backend credentials check), Internet Identity authentication, and token-based admin bootstrap form for authenticated non-admin users with clear success/failure messaging.",
+  "frontend/src/components/admin/AdminCredentialResetDialog.tsx": "Dialog component for admin credential reset with phone-based recovery, collecting recovery phone number, new username, new password with confirmation, performing client-side validation, and displaying success/error states with guidance to return to sign-in."
 }

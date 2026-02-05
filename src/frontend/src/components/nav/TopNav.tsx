@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useAccountType } from '../../hooks/useAccountType';
-import { useIsCallerAdmin, useIsAdminLoggedIn, useLogOutAdmin } from '../../hooks/useQueries';
+import { useIsCallerAdmin } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Menu, X, Briefcase, User, Home, Shield } from 'lucide-react';
@@ -11,26 +11,14 @@ export default function TopNav() {
   const { identity, clear, loginStatus } = useInternetIdentity();
   const { accountType } = useAccountType();
   const { data: isAdmin } = useIsCallerAdmin();
-  const { data: isAdminLoggedIn } = useIsAdminLoggedIn();
-  const logOutAdmin = useLogOutAdmin();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAuthenticated = !!identity;
-  const hasAdminAccess = isAdmin || isAdminLoggedIn;
 
   const handleLogout = async () => {
-    // If logged in via credentials, call backend logout
-    if (isAdminLoggedIn) {
-      try {
-        await logOutAdmin.mutateAsync();
-      } catch (error) {
-        console.error('Error logging out admin:', error);
-      }
-    }
-    
-    // Always clear Internet Identity session and cache
+    // Clear Internet Identity session and cache
     await clear();
     queryClient.clear();
     navigate({ to: '/' });
@@ -50,7 +38,7 @@ export default function TopNav() {
     : [];
 
   // Add admin link if user has admin access
-  const allNavLinks = hasAdminAccess 
+  const allNavLinks = isAdmin 
     ? [...navLinks, { to: '/app/admin', label: 'Admin', icon: Shield }]
     : navLinks;
 
@@ -94,9 +82,9 @@ export default function TopNav() {
               <Button
                 onClick={handleLogout}
                 variant="outline"
-                disabled={loginStatus === 'logging-in' || logOutAdmin.isPending}
+                disabled={loginStatus === 'logging-in'}
               >
-                {logOutAdmin.isPending ? 'Signing out...' : 'Sign Out'}
+                Sign Out
               </Button>
             )}
           </div>
@@ -138,9 +126,9 @@ export default function TopNav() {
                 }}
                 variant="outline"
                 className="w-full"
-                disabled={loginStatus === 'logging-in' || logOutAdmin.isPending}
+                disabled={loginStatus === 'logging-in'}
               >
-                {logOutAdmin.isPending ? 'Signing out...' : 'Sign Out'}
+                Sign Out
               </Button>
             </div>
           </nav>

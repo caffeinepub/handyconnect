@@ -1,42 +1,70 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Admin username/password sign-in option (alongside Internet Identity)",
+  "title": "Deduplicate providers and add Internet Identity token-based admin bootstrap UX",
   "requirements": [
     {
-      "id": "REQ-43",
-      "summary": "Add an Admin Sign-In option using username/id + password that grants access to /app/admin for the configured credentials while keeping the existing Internet Identity admin sign-in flow unchanged.",
+      "id": "REQ-3",
+      "summary": "Remove duplicate React Query and Internet Identity providers so only one QueryClientProvider and one InternetIdentityProvider exist at runtime without touching immutable paths.",
       "acceptanceCriteria": [
-        "The Admin Sign-In page provides a username/id + password form.",
-        "Submitting username \"adminumar\" with password \"umar9945\" successfully signs the user into the admin area (/app/admin).",
-        "Submitting any other username/password combination shows an English error message and does not grant admin access.",
-        "The existing Internet Identity-based admin sign-in flow continues to work as it does today."
+        "Only one QueryClientProvider and one InternetIdentityProvider wrap the application at runtime.",
+        "No changes are made to any paths listed as immutable in SYSTEM_CONTEXT (e.g., frontend/src/main.tsx and frontend/src/hooks/useInternetIdentity.ts[x]).",
+        "Admin auth queries (isAdmin / isAdminLoggedIn) and post-login navigation behave consistently (no split caches / no double initialization)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/AdminSignIn.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Add a username/id + password sign-in form option that calls the backend capability for credential validation (adminSignInWithCredentials) and navigates to /app/admin on success; show an English error message on failure; keep the existing Internet Identity admin sign-in UI/behavior intact. Use existing UI components (do not edit anything under frontend/src/components/ui)."
-        },
+          "description": "Remove the nested QueryClientProvider and InternetIdentityProvider wrappers from App so that the single providers defined in frontend/src/main.tsx are the only active ones at runtime; keep router + route tree creation intact and ensure no behavioral regression in navigation after login."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Enhance Admin Sign-In to support Internet Identity login and token-based admin bootstrap for authenticated non-admins, with proper error handling and optional credential sign-in disabling.",
+      "acceptanceCriteria": [
+        "Admin sign-in page supports Internet Identity login and, after login, clearly indicates when the current identity is not an admin.",
+        "When not an admin, the page provides an input for an admin access token and a submit action that attempts to bootstrap admin access for the logged-in identity.",
+        "On successful bootstrap, the UI invalidates/refreshes admin status queries and navigates to /app/admin.",
+        "On failure (wrong token or token not configured), the UI shows an English error message and does not navigate.",
+        "If credential-based admin sign-in is disabled in REQ-2, the Admin Sign-In page hides or disables the username/password form to avoid confusing users."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add React Query hooks to support credential-based admin session checks and actions needed by route protection and UI (e.g., query isAdminLoggedIn and mutation logOutAdmin), using the existing backend actor methods. Ensure queries are enabled with an available actor and use stable query keys so admin session state updates correctly."
+          "description": "Add React Query hooks needed by the Admin Sign-In flow: (1) a query hook that uses backend getAdminSignInPageWithCredentialsCheck() so the UI can conditionally hide/disable credential sign-in, and (2) a mutation hook for backend bootstrapAdminRole(token) that, on success, invalidates the admin-status query key used by the app (e.g., ['isAdmin']). Use the authorization component’s frontend guidance patterns (Internet Identity auth + React Query cache management). Verify the component's usage instructions before implementing."
         },
+        {
+          "path": "frontend/src/pages/AdminSignIn.tsx",
+          "operation": "modify",
+          "description": "Update the Admin Sign-In page to: (1) support Internet Identity login as the primary authentication method, (2) after II login, if the identity is authenticated but not admin, show a token-based admin bootstrap form that calls the new bootstrap mutation and shows English success/failure messaging, (3) on successful bootstrap, refresh/invalidate admin status queries and navigate to /app/admin, and (4) if credential-based sign-in is disabled (from the new credentials-check query), hide or disable the username/password form and present a clear English explanation. Use the authorization component’s frontend guidance for login/logout behavior and cache clearing. Verify the component's usage instructions before implementing."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Make admin route protection rely on a single Internet Identity–derived admin status source of truth and ensure /app/admin works end-to-end after bootstrap.",
+      "acceptanceCriteria": [
+        "After a successful II token bootstrap, navigating to /app/admin renders the AdminDashboard and does not show AccessDeniedScreen.",
+        "If a user is logged in with II but is not an admin, /app/admin shows AccessDeniedScreen (or redirects appropriately) and does not expose admin data.",
+        "Admin status checks do not depend on duplicated providers/caches (covered by REQ-3) and remain stable across reloads."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/components/auth/RequireAdmin.tsx",
           "operation": "modify",
-          "description": "Extend the admin route guard to allow access if either (1) the caller is an Internet Identity admin (existing check) or (2) a credential-based admin session is active (new isAdminLoggedIn check). Continue to show the existing loading state and access denied screen for unauthorized users."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Update /app/admin route wiring so the admin dashboard is protected by the updated admin guard logic that supports both Internet Identity admin and credential-based admin session access, while preserving the current behavior for the Internet Identity flow."
+          "description": "Update admin route protection to use a single source of truth for admin status derived from Internet Identity (use the existing useIsCallerAdmin hook) and remove reliance on separate credential-session admin flags for gating. Ensure the loading state and AccessDeniedScreen behavior remain correct. Use the authorization component’s access-control UI guidance. Verify the component's usage instructions before implementing."
         },
         {
           "path": "frontend/src/components/nav/TopNav.tsx",
           "operation": "modify",
-          "description": "Update admin navigation visibility and logout behavior to account for credential-based admin sessions: show the Admin link when the user is admin via Internet Identity or has an active credential-based admin session; on sign out, also call the backend capability to end the admin credential session (logOutAdmin) in addition to the existing Internet Identity logout + query cache clear."
+          "description": "Update the Admin nav-link visibility and related admin access checks to rely only on the Internet Identity–derived admin status (useIsCallerAdmin). Keep logout behavior clearing identity and React Query cache as per authorization component guidance; avoid using separate admin-session flags as the gating signal. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/AdminSignIn.tsx",
+          "operation": "modify",
+          "description": "Align post-login and post-bootstrap redirect logic with the single Internet Identity–derived admin status (navigate to /app/admin only when II admin check is true), ensuring a freshly bootstrapped identity can access /app/admin without seeing AccessDeniedScreen. Verify stable behavior across reloads after REQ-3 provider de-duplication. Use the authorization component’s frontend guidance patterns. Verify the component's usage instructions before implementing."
         }
       ]
     }

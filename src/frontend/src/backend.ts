@@ -253,6 +253,7 @@ export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     adminSignInWithCredentials(username: string, password: string): Promise<boolean>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    bootstrapAdminRole(token: string): Promise<boolean>;
     browseWorkers(): Promise<Array<WorkerProfile>>;
     browseWorkersByCategory(category: ServiceCategory): Promise<Array<WorkerProfile>>;
     browseWorkersByRateAscending(): Promise<Array<WorkerProfile>>;
@@ -264,6 +265,7 @@ export interface backendInterface {
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
     createWorkerProfile(profile: PartialWorkerProfile): Promise<void>;
     forceCheckSubscriptionStatuses(): Promise<Array<[Principal, PaymentStatus]>>;
+    getAdminRecoveryPhoneNumber(): Promise<string>;
     getAdminRoleChangeStatus(): Promise<AdminRoleChange>;
     getAdminRoleChanges(): Promise<Array<AdminRoleChange>>;
     getAdminRoleChangesWithCount(): Promise<Array<AdminRoleChange>>;
@@ -298,11 +300,13 @@ export interface backendInterface {
     listAllUsers(): Promise<Array<[Principal, UserProfile]>>;
     logOutAdmin(): Promise<boolean>;
     removeProfileImage(): Promise<void>;
+    resetAdminCredentialsByPhoneNumber(phoneNumber: string, newUsername: string, newPassword: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchUserByPrincipal(principalText: string): Promise<[Principal, UserProfile] | null>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateAdminCredentials(newUsername: string, newPassword: string): Promise<void>;
+    updateAdminRecoveryPhoneNumber(newPhoneNumber: string): Promise<void>;
     updateAdminSettings(newSettings: AdminSettings): Promise<void>;
     updateAdminSignInPageSettings(newSettings: AdminSignInPagePublicSettings): Promise<void>;
     updateBookingStatus(bookingId: bigint, newStatus: BookingStatus): Promise<void>;
@@ -436,6 +440,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n8(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async bootstrapAdminRole(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.bootstrapAdminRole(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.bootstrapAdminRole(arg0);
             return result;
         }
     }
@@ -591,6 +609,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.forceCheckSubscriptionStatuses();
             return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAdminRecoveryPhoneNumber(): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminRecoveryPhoneNumber();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminRecoveryPhoneNumber();
+            return result;
         }
     }
     async getAdminRoleChangeStatus(): Promise<AdminRoleChange> {
@@ -1030,6 +1062,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async resetAdminCredentialsByPhoneNumber(arg0: string, arg1: string, arg2: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetAdminCredentialsByPhoneNumber(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetAdminCredentialsByPhoneNumber(arg0, arg1, arg2);
+            return result;
+        }
+    }
     async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
         if (this.processError) {
             try {
@@ -1097,6 +1143,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateAdminCredentials(arg0, arg1);
+            return result;
+        }
+    }
+    async updateAdminRecoveryPhoneNumber(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateAdminRecoveryPhoneNumber(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateAdminRecoveryPhoneNumber(arg0);
             return result;
         }
     }

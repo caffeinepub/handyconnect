@@ -1,6 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, useNavigate } from '@tanstack/react-router';
-import { InternetIdentityProvider } from './hooks/useInternetIdentity';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { useEffect } from 'react';
@@ -32,20 +30,6 @@ import RequireMaintenanceGate from './components/auth/RequireMaintenanceGate';
 import AppShell from './components/layout/AppShell';
 
 import { AccountType } from './backend';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error: any) => {
-        // Don't retry on subscription payment errors
-        if (error?.message?.includes('Subscription payment required')) {
-          return false;
-        }
-        return failureCount < 2;
-      },
-    },
-  },
-});
 
 // Global error handler component
 function GlobalErrorHandler() {
@@ -253,11 +237,5 @@ declare module '@tanstack/react-router' {
 }
 
 export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <InternetIdentityProvider>
-        <RouterProvider router={router} />
-      </InternetIdentityProvider>
-    </QueryClientProvider>
-  );
+  return <RouterProvider router={router} />;
 }

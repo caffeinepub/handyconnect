@@ -2,13 +2,12 @@ import Text "mo:core/Text";
 import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Map "mo:core/Map";
+import Order "mo:core/Order";
+import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
 import Int "mo:core/Int";
 import Time "mo:core/Time";
-import Iter "mo:core/Iter";
-import Order "mo:core/Order";
 import Principal "mo:core/Principal";
-
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 import Stripe "stripe/stripe";
@@ -71,6 +70,12 @@ actor {
     adminSignInTitle : Text;
     adminSignInSubtitle : Text;
     adminSignInHelperText : Text;
+  };
+
+  // Plaintext admin credentials type
+  public type AdminCredentials = {
+    username : Text;
+    password : Text;
   };
 
   public type ServiceCategory = {
@@ -155,10 +160,7 @@ actor {
   var stripeConfiguration : ?Stripe.StripeConfiguration = null;
 
   // Add admin credentials
-  var adminCredentials : ?{
-    username : Text;
-    password : Text;
-  } = ?{
+  var adminCredentials : ?AdminCredentials = ?{
     username = "adminumar";
     password = "umar9945";
   };
@@ -182,6 +184,16 @@ actor {
   };
 
   let subscriptionPayments = Map.empty<Principal, SubscriptionPayment>();
+
+  // Store admin recovery phone number
+  var adminRecoveryPhoneNumber : Text = "9945008686";
+
+  // Rate limiting for credential reset attempts
+  var lastResetAttemptTime : Int = 0;
+  let RESET_COOLDOWN_NANOSECONDS : Int = 300_000_000_000; // 5 minutes
+
+  // II Admin Bootstrap Token
+  var adminBootstrapToken : ?Text = ?"S3RV1C37ADMN3T!NG74";
 
   // Helper function to check if user has valid subscription (paid or within grace period)
   func hasValidSubscription(caller : Principal) : Bool {
@@ -270,11 +282,9 @@ actor {
 
   // Admin sign-in verification - grants admin role to caller upon successful authentication
   public shared ({ caller }) func adminSignInWithCredentials(username : Text, password : Text) : async Bool {
-    // Verify credentials
     switch (adminCredentials) {
       case (?{ username = storedUsername; password = storedPassword }) {
         if (username == storedUsername and password == storedPassword) {
-          // Grant admin role to the caller via AccessControl system
           AccessControl.assignRole(accessControlState, caller, caller, #admin);
           return true;
         };
@@ -294,27 +304,15 @@ actor {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can log out");
     };
-    // Note: AccessControl.assignRole is admin-only, so we use it to revoke
-    // The caller must be admin to call this, and we're changing their own role
     AccessControl.assignRole(accessControlState, caller, caller, #guest);
     true;
   };
 
   public shared ({ caller }) func updateAdminSignInPageSettings(newSettings : AdminSignInPagePublicSettings) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can update admin sign-in page settings");
     };
     adminSignInPagePublicSettings := newSettings;
-  };
-
-  public shared ({ caller }) func updateAdminCredentials(newUsername : Text, newPassword : Text) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can update admin credentials");
-    };
-    adminCredentials := ?{
-      username = newUsername;
-      password = newPassword;
-    };
   };
 
   public query ({ caller }) func canRevokeAdmin() : async Bool {
@@ -410,7 +408,6 @@ actor {
     let allExpired = subscriptionPayments.toArray();
     allExpired.map(
       func((principal, subscription)) {
-        // Keep original status even if expired (can handle that on frontend)
         (principal, subscription.status);
       }
     );
@@ -997,5 +994,88 @@ actor {
       }
     );
     filtered;
+  };
+
+  // Admin recovery phone number management
+  public query ({ caller }) func getAdminRecoveryPhoneNumber() : async Text {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view recovery phone number");
+    };
+    adminRecoveryPhoneNumber;
+  };
+
+  public shared ({ caller }) func updateAdminRecoveryPhoneNumber(newPhoneNumber : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can update recovery phone number");
+    };
+    adminRecoveryPhoneNumber := newPhoneNumber;
+  };
+
+  // Admin credential reset with rate limiting and abuse protection
+  public shared ({ caller }) func resetAdminCredentialsByPhoneNumber(
+    phoneNumber : Text,
+    newUsername : Text,
+    newPassword : Text,
+  ) : async Bool {
+    let currentTime = Time.now();
+
+    // Rate limiting: enforce cooldown period between reset attempts
+    if (currentTime - lastResetAttemptTime < RESET_COOLDOWN_NANOSECONDS) {
+      // Return generic failure to avoid leaking timing information
+      return false;
+    };
+
+    // Update last attempt time regardless of success/failure to prevent timing attacks
+    lastResetAttemptTime := currentTime;
+
+    // Verify phone number matches (constant-time comparison would be ideal but Text doesn't support it easily)
+    if (phoneNumber != adminRecoveryPhoneNumber) {
+      // Generic failure response - don't reveal whether phone number was correct
+      return false;
+    };
+
+    // Update credentials
+    adminCredentials := ?{
+      username = newUsername;
+      password = newPassword;
+    };
+
+    true;
+  };
+
+  // Admin credential update (requires existing admin authentication)
+  public shared ({ caller }) func updateAdminCredentials(newUsername : Text, newPassword : Text) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
+      Runtime.trap("Unauthorized: Only admins can update admin credentials");
+    };
+    adminCredentials := ?{
+      username = newUsername;
+      password = newPassword;
+    };
+  };
+
+  // Secure Internet Identity (II) Admin Bootstrap Endpoint
+  public shared ({ caller }) func bootstrapAdminRole(token : Text) : async Bool {
+    switch (adminBootstrapToken) {
+      case (null) {
+        // Token already used or not configured
+        return false;
+      };
+      case (?storedToken) {
+        if (token != storedToken) {
+          return false;
+        };
+        AccessControl.initialize(accessControlState, caller, storedToken, token);
+
+        // Track admin status in local map
+        adminPrincipals.add(caller, true);
+        adminCount += 1;
+
+        // Clear the bootstrap token for one-time use
+        adminBootstrapToken := null;
+
+        return true;
+      };
+    };
   };
 };

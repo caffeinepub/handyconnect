@@ -147,6 +147,7 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'adminSignInWithCredentials' : ActorMethod<[string, string], boolean>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'bootstrapAdminRole' : ActorMethod<[string], boolean>,
   'browseWorkers' : ActorMethod<[], Array<WorkerProfile>>,
   'browseWorkersByCategory' : ActorMethod<
     [ServiceCategory],
@@ -170,6 +171,7 @@ export interface _SERVICE {
     [],
     Array<[Principal, PaymentStatus]>
   >,
+  'getAdminRecoveryPhoneNumber' : ActorMethod<[], string>,
   'getAdminRoleChangeStatus' : ActorMethod<[], AdminRoleChange>,
   'getAdminRoleChanges' : ActorMethod<[], Array<AdminRoleChange>>,
   'getAdminRoleChangesWithCount' : ActorMethod<[], Array<AdminRoleChange>>,
@@ -207,6 +209,10 @@ export interface _SERVICE {
   'listAllUsers' : ActorMethod<[], Array<[Principal, UserProfile]>>,
   'logOutAdmin' : ActorMethod<[], boolean>,
   'removeProfileImage' : ActorMethod<[], undefined>,
+  'resetAdminCredentialsByPhoneNumber' : ActorMethod<
+    [string, string, string],
+    boolean
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchUserByPrincipal' : ActorMethod<
     [string],
@@ -215,6 +221,7 @@ export interface _SERVICE {
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateAdminCredentials' : ActorMethod<[string, string], undefined>,
+  'updateAdminRecoveryPhoneNumber' : ActorMethod<[string], undefined>,
   'updateAdminSettings' : ActorMethod<[AdminSettings], undefined>,
   'updateAdminSignInPageSettings' : ActorMethod<
     [AdminSignInPagePublicSettings],

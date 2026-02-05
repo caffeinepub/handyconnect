@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useIsCallerAdmin, useIsAdminLoggedIn } from '../../hooks/useQueries';
+import { useIsCallerAdmin } from '../../hooks/useQueries';
 import AccessDeniedScreen from './AccessDeniedScreen';
 
 interface RequireAdminProps {
@@ -7,11 +7,7 @@ interface RequireAdminProps {
 }
 
 export default function RequireAdmin({ children }: RequireAdminProps) {
-  const { data: isAdmin, isLoading: isLoadingAdmin } = useIsCallerAdmin();
-  const { data: isAdminLoggedIn, isLoading: isLoadingSession } = useIsAdminLoggedIn();
-
-  const isLoading = isLoadingAdmin || isLoadingSession;
-  const hasAdminAccess = isAdmin || isAdminLoggedIn;
+  const { data: isAdmin, isLoading } = useIsCallerAdmin();
 
   if (isLoading) {
     return (
@@ -24,7 +20,7 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
     );
   }
 
-  if (!hasAdminAccess) {
+  if (!isAdmin) {
     return <AccessDeniedScreen />;
   }
 

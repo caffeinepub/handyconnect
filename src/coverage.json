@@ -1,46 +1,67 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T06:49:58.787Z",
+  "generatedAt": "2026-02-05T10:54:39.700Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 1,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-43",
-        "summary": "Add a separate Admin Sign-In option that authenticates using a username and password (in addition to the existing Internet Identity admin sign-in flow), using these initial credentials exactly: username/id = \"adminumar\" and password = \"umar9945\".",
+        "id": "REQ-1",
+        "summary": "Add a secure Internet Identity (II) admin bootstrap endpoint in the Motoko backend that can elevate the caller to admin using a secret token, without requiring the caller to already be an admin, and without trapping when the token is not configured.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Fix the current admin credential sign-in behavior in the backend so it does not fail due to requiring the caller to already be admin when assigning admin role (i.e., make the sign-in function capable of elevating a non-admin caller when authentication is successful), or explicitly disable credential-based elevation in favor of II token bootstrap and reflect that in the response behavior.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Eliminate duplicate React Query + Internet Identity provider initialization by ensuring the app only has one QueryClientProvider and one InternetIdentityProvider active at runtime, without modifying any frontend immutable paths.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AdminSignIn.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/auth/RequireAdmin.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/components/nav/TopNav.tsx"
+          "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AdminSignIn.tsx",
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/auth/RequireAdmin.tsx",
-          "frontend/src/components/nav/TopNav.tsx"
+          "frontend/src/App.tsx"
         ]
       },
       {
-        "id": "REQ-44",
-        "summary": "Implement backend support for verifying the admin username/password and establishing an admin-authenticated session state that the frontend can use for route protection and for calling admin-only backend methods.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-4",
+        "summary": "Update the Admin Sign-In UI to support secure II-based admin access: allow the user to sign in with Internet Identity, then if they are authenticated but not an admin, present a token-based admin bootstrap form that calls the new backend bootstrap endpoint and redirects to /app/admin upon success.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/AdminSignIn.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/AdminSignIn.tsx"
+        ]
       },
       {
-        "id": "REQ-45",
-        "summary": "Persist the admin username/password authentication configuration across canister upgrades with the initial default values set to username/id \"adminumar\" and password \"umar9945\".",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-5",
+        "summary": "Ensure admin route protection uses a single, correct source of truth for admin status derived from Internet Identity, and that /app/admin access works end-to-end after a successful bootstrap on a fresh identity.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/auth/RequireAdmin.tsx",
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/pages/AdminSignIn.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/auth/RequireAdmin.tsx",
+          "frontend/src/components/nav/TopNav.tsx",
+          "frontend/src/pages/AdminSignIn.tsx"
+        ]
       }
     ]
   },
@@ -48,12 +69,13 @@
     "backend/main.mo",
     "backend/migration.mo",
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/admin/UserControlPanel.tsx",
     "frontend/src/components/auth/RequireAdmin.tsx",
     "frontend/src/components/nav/TopNav.tsx",
     "frontend/src/declarations/backend.did.d.ts",

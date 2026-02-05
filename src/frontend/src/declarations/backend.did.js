@@ -173,6 +173,7 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'adminSignInWithCredentials' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'bootstrapAdminRole' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'browseWorkers' : IDL.Func([], [IDL.Vec(WorkerProfile)], ['query']),
   'browseWorkersByCategory' : IDL.Func(
       [ServiceCategory],
@@ -208,6 +209,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatus))],
       ['query'],
     ),
+  'getAdminRecoveryPhoneNumber' : IDL.Func([], [IDL.Text], ['query']),
   'getAdminRoleChangeStatus' : IDL.Func([], [AdminRoleChange], ['query']),
   'getAdminRoleChanges' : IDL.Func([], [IDL.Vec(AdminRoleChange)], ['query']),
   'getAdminRoleChangesWithCount' : IDL.Func(
@@ -292,6 +294,11 @@ export const idlService = IDL.Service({
     ),
   'logOutAdmin' : IDL.Func([], [IDL.Bool], []),
   'removeProfileImage' : IDL.Func([], [], []),
+  'resetAdminCredentialsByPhoneNumber' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Bool],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchUserByPrincipal' : IDL.Func(
       [IDL.Text],
@@ -305,6 +312,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'updateAdminCredentials' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'updateAdminRecoveryPhoneNumber' : IDL.Func([IDL.Text], [], []),
   'updateAdminSettings' : IDL.Func([AdminSettings], [], []),
   'updateAdminSignInPageSettings' : IDL.Func(
       [AdminSignInPagePublicSettings],
@@ -483,6 +491,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'bootstrapAdminRole' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'browseWorkers' : IDL.Func([], [IDL.Vec(WorkerProfile)], ['query']),
     'browseWorkersByCategory' : IDL.Func(
         [ServiceCategory],
@@ -518,6 +527,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Principal, PaymentStatus))],
         ['query'],
       ),
+    'getAdminRecoveryPhoneNumber' : IDL.Func([], [IDL.Text], ['query']),
     'getAdminRoleChangeStatus' : IDL.Func([], [AdminRoleChange], ['query']),
     'getAdminRoleChanges' : IDL.Func([], [IDL.Vec(AdminRoleChange)], ['query']),
     'getAdminRoleChangesWithCount' : IDL.Func(
@@ -602,6 +612,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'logOutAdmin' : IDL.Func([], [IDL.Bool], []),
     'removeProfileImage' : IDL.Func([], [], []),
+    'resetAdminCredentialsByPhoneNumber' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Bool],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchUserByPrincipal' : IDL.Func(
         [IDL.Text],
@@ -615,6 +630,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'updateAdminCredentials' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'updateAdminRecoveryPhoneNumber' : IDL.Func([IDL.Text], [], []),
     'updateAdminSettings' : IDL.Func([AdminSettings], [], []),
     'updateAdminSignInPageSettings' : IDL.Func(
         [AdminSignInPagePublicSettings],

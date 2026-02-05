@@ -2,11 +2,31 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-separate-admin-sign-in-option-that-authenticates-using-a-username-and-password-in-addition-to-the-existing-internet-identity-admin-sign-in-flow-using-these-initial-credentials-exactly-username-id-adminumar-and-password-umar9945",
-      "featureTitle": "Add a separate Admin Sign-In option that authenticates using a username and password (in addition to the existing Internet Identity admin sign-in flow), using these initial credentials exactly: username/id = \"adminumar\" and password = \"umar9945\".",
+      "featureId": "feature-eliminate-duplicate-react-query-internet-identity-provider-initialization-by-ensuring-the-app-only-has-one-queryclientprovider-and-one-internetidentityprovider-active-at-runtime-without-modifying-any-frontend-immutable-paths",
+      "featureTitle": "Eliminate duplicate React Query + Internet Identity provider initialization by ensuring the app only has one QueryClientProvider and one InternetIdentityProvider active at runtime, without modifying any frontend immutable paths.",
       "files": [
-        "frontend/src/components/auth/RequireAdmin.tsx",
-        "frontend/src/components/nav/TopNav.tsx",
+        "frontend/src/App.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-admin-sign-in-ui-to-support-secure-ii-based-admin-access-allow-the-user-to-sign-in-with-internet-identity-then-if-they-are-authenticated-but-not-an-admin-present-a-token-based-admin-bootstrap-form-that-calls-the-new-backend-bootstrap-endpoint-and-redirects-to-app-admin-upon-success",
+      "featureTitle": "Update the Admin Sign-In UI to support secure II-based admin access: allow the user to sign in with Internet Identity, then if they are authenticated but not an admin, present a token-based admin bootstrap form that calls the new backend bootstrap endpoint and redirects to /app/admin upon success.",
+      "files": [
         "frontend/src/hooks/useQueries.ts",
         "frontend/src/pages/AdminSignIn.tsx"
       ],
@@ -22,7 +42,31 @@
         "http-outcalls@3.0.0"
       ],
       "testIds": [
-        "REQ-43"
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-admin-route-protection-uses-a-single-correct-source-of-truth-for-admin-status-derived-from-internet-identity-and-that-app-admin-access-works-end-to-end-after-a-successful-bootstrap-on-a-fresh-identity",
+      "featureTitle": "Ensure admin route protection uses a single, correct source of truth for admin status derived from Internet Identity, and that /app/admin access works end-to-end after a successful bootstrap on a fresh identity.",
+      "files": [
+        "frontend/src/components/auth/RequireAdmin.tsx",
+        "frontend/src/components/nav/TopNav.tsx",
+        "frontend/src/pages/AdminSignIn.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "blob-storage@4.0.0",
+        "stripe@3.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

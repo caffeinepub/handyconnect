@@ -1,72 +1,120 @@
 {
   "kind": "build_request",
-  "title": "Add admin username/password login with specified credentials",
-  "priority": "normal",
+  "title": "Fix admin portal access and enable secure Internet Identity–based admin bootstrap",
+  "priority": "high",
   "requirements": [
     {
-      "id": "REQ-43",
-      "text": "Add a separate Admin Sign-In option that authenticates using a username and password (in addition to the existing Internet Identity admin sign-in flow), using these initial credentials exactly: username/id = \"adminumar\" and password = \"umar9945\".",
+      "id": "REQ-1",
+      "text": "Add a secure Internet Identity (II) admin bootstrap endpoint in the Motoko backend that can elevate the caller to admin using a secret token, without requiring the caller to already be an admin, and without trapping when the token is not configured.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-5",
+          "msg-12"
+        ],
+        "quotes": [
+          "secure Internet Identity–based admin access,  set that up too for me im not able to log the admin portel",
+          "Yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend exposes a new shared method that accepts an admin token string and, on success, assigns the #admin role to the caller’s Principal (Internet Identity).",
+        "If the admin token is missing/unset on the canister, the method returns a non-trapping failure result (or false) with no canister trap.",
+        "If the token is incorrect, the method returns failure without changing any roles.",
+        "If the token is correct, the method elevates the caller to admin and subsequent admin-gated endpoints (e.g., getAdminSettings, listAllUsers) succeed for that caller.",
+        "The endpoint does not weaken existing admin-only endpoints (they must remain admin-gated)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Fix the current admin credential sign-in behavior in the backend so it does not fail due to requiring the caller to already be admin when assigning admin role (i.e., make the sign-in function capable of elevating a non-admin caller when authentication is successful), or explicitly disable credential-based elevation in favor of II token bootstrap and reflect that in the response behavior.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "secure Internet Identity–based admin access,  set that up too for me im not able to log the admin portel"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A successful credential sign-in no longer fails solely because the caller is not yet admin.",
+        "If credential-based sign-in is intentionally disabled, the backend returns a clear failure (no trap), and the frontend can hide/disable credential sign-in accordingly (handled in REQ-4).",
+        "No admin-only operation becomes callable by non-admin users without successful authentication + elevation."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Eliminate duplicate React Query + Internet Identity provider initialization by ensuring the app only has one QueryClientProvider and one InternetIdentityProvider active at runtime, without modifying any frontend immutable paths.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-5",
+          "msg-12"
+        ],
+        "quotes": [
+          "secure Internet Identity–based admin access,  set that up too for me im not able to log the admin portel",
+          "Yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Only one QueryClientProvider and one InternetIdentityProvider wrap the application at runtime.",
+        "No changes are made to any paths listed as immutable in SYSTEM_CONTEXT (e.g., frontend/src/main.tsx and frontend/src/hooks/useInternetIdentity.ts[x]).",
+        "Admin auth queries (isAdmin / isAdminLoggedIn) and post-login navigation behave consistently (no split caches / no double initialization)."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update the Admin Sign-In UI to support secure II-based admin access: allow the user to sign in with Internet Identity, then if they are authenticated but not an admin, present a token-based admin bootstrap form that calls the new backend bootstrap endpoint and redirects to /app/admin upon success.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-5",
+          "msg-12"
+        ],
+        "quotes": [
+          "secure Internet Identity–based admin access,  set that up too for me im not able to log the admin portel",
+          "Yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin sign-in page supports Internet Identity login and, after login, clearly indicates when the current identity is not an admin.",
+        "When not an admin, the page provides an input for an admin access token and a submit action that attempts to bootstrap admin access for the logged-in identity.",
+        "On successful bootstrap, the UI invalidates/refreshes admin status queries and navigates to /app/admin.",
+        "On failure (wrong token or token not configured), the UI shows an English error message and does not navigate.",
+        "If credential-based admin sign-in is disabled in REQ-2, the Admin Sign-In page hides or disables the username/password form to avoid confusing users."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Ensure admin route protection uses a single, correct source of truth for admin status derived from Internet Identity, and that /app/admin access works end-to-end after a successful bootstrap on a fresh identity.",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-5",
+          "msg-12"
         ],
         "quotes": [
-          "make admin login user id and password as mantioning ID-adminumar, password- umar9945"
+          "secure Internet Identity–based admin access,  set that up too for me im not able to log the admin portel",
+          "Yes"
         ]
       },
       "acceptanceCriteria": [
-        "The Admin Sign-In page provides a username/id + password form.",
-        "Submitting username \"adminumar\" with password \"umar9945\" successfully signs the user into the admin area (/app/admin).",
-        "Submitting any other username/password combination shows an English error message and does not grant admin access.",
-        "The existing Internet Identity-based admin sign-in flow continues to work as it does today."
-      ]
-    },
-    {
-      "id": "REQ-44",
-      "text": "Implement backend support for verifying the admin username/password and establishing an admin-authenticated session state that the frontend can use for route protection and for calling admin-only backend methods.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "make admin login user id and password as mantioning ID-adminumar, password- umar9945"
-        ]
-      },
-      "acceptanceCriteria": [
-        "There is a backend method that validates the submitted username/password and returns a success/failure response.",
-        "After successful username/password login, admin-only routes are accessible and admin-only backend methods can be called successfully from the frontend.",
-        "After unsuccessful username/password login, admin-only routes remain blocked."
-      ]
-    },
-    {
-      "id": "REQ-45",
-      "text": "Persist the admin username/password authentication configuration across canister upgrades with the initial default values set to username/id \"adminumar\" and password \"umar9945\".",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "make admin login user id and password as mantioning ID-adminumar, password- umar9945"
-        ]
-      },
-      "acceptanceCriteria": [
-        "After upgrading the canister, the configured admin username/password login still works with the same credentials."
+        "After a successful II token bootstrap, navigating to /app/admin renders the AdminDashboard and does not show AccessDeniedScreen.",
+        "If a user is logged in with II but is not an admin, /app/admin shows AccessDeniedScreen (or redirects appropriately) and does not expose admin data.",
+        "Admin status checks do not depend on duplicated providers/caches (covered by REQ-3) and remain stable across reloads."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single-actor Motoko canister (all logic in backend/main.mo).",
-    "Do not edit files under frontend/src/components/ui (read-only).",
-    "Use English for any user-facing text.",
-    "Preserve the exact provided credentials as the initial configured admin login: username/id \"adminumar\", password \"umar9945\"."
+    "Backend must remain a single-actor Motoko architecture; all logic changes must be implemented in backend/main.mo (only add/update backend/migration.mo if state migration is truly required).",
+    "Do not modify any frontend paths listed as immutable in SYSTEM_CONTEXT (including frontend/src/main.tsx and frontend/src/hooks/useInternetIdentity.ts[x]).",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not remove or replace the existing Internet Identity authentication flow for normal users.",
-    "Do not add third-party authentication providers (only Internet Identity is supported).",
-    "Do not introduce additional backend services or external databases."
+    "Implementing third-party authentication providers other than Internet Identity.",
+    "Adding external databases or non-Motoko backend services.",
+    "Full redesign of the admin dashboard features beyond what is needed to restore admin access."
   ],
   "imageRequirements": {
     "required": [],

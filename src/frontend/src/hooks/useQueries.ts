@@ -35,7 +35,41 @@ export function useIsCallerAdmin() {
   });
 }
 
-// Check if admin is logged in via credentials
+// Check if admin credentials are configured (for UI visibility)
+export function useGetAdminSignInPageWithCredentialsCheck() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<{ settings: AdminSignInPagePublicSettings; hasCredentials: boolean }>({
+    queryKey: ['adminSignInPageWithCredentials'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getAdminSignInPageWithCredentialsCheck();
+    },
+    enabled: !!actor && !actorFetching,
+    retry: 1,
+  });
+}
+
+// Bootstrap admin role with token (Internet Identity)
+export function useBootstrapAdminRole() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (token: string): Promise<boolean> => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.bootstrapAdminRole(token);
+    },
+    onSuccess: (success) => {
+      if (success) {
+        // Invalidate admin status queries to reflect new admin role
+        queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
+      }
+    },
+  });
+}
+
+// Check if admin is logged in via credentials (deprecated, kept for backward compatibility)
 export function useIsAdminLoggedIn() {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -82,6 +116,32 @@ export function useLogOutAdmin() {
       return actor.logOutAdmin();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isAdminLoggedIn'] });
+      queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
+    },
+  });
+}
+
+// Admin credential reset mutation
+export function useResetAdminCredentialsByPhoneNumber() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      phoneNumber, 
+      newUsername, 
+      newPassword 
+    }: { 
+      phoneNumber: string; 
+      newUsername: string; 
+      newPassword: string; 
+    }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.resetAdminCredentialsByPhoneNumber(phoneNumber, newUsername, newPassword);
+    },
+    onSuccess: () => {
+      // Invalidate admin auth queries so UI reflects new state after reset + sign-in
       queryClient.invalidateQueries({ queryKey: ['isAdminLoggedIn'] });
       queryClient.invalidateQueries({ queryKey: ['isAdmin'] });
     },

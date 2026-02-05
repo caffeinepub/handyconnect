@@ -1,13 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Add an additional admin sign-in option using a fixed username/password while keeping the existing Internet Identity admin sign-in flow working.
+**Goal:** Restore admin portal access by using Internet Identity as the source of truth and enabling a secure token-based admin bootstrap flow.
 
 **Planned changes:**
-- Add an Admin Sign-In form (username/id + password) as a separate option alongside the current Internet Identity admin sign-in.
-- Implement a backend method in the Motoko canister to verify username/password and return success/failure.
-- Establish and expose an admin-authenticated session state for route protection and admin-only backend calls after successful username/password login.
-- Persist the admin username/password authentication configuration across canister upgrades, with initial defaults: username/id `adminumar`, password `umar9945`.
-- Show an English error message on invalid username/password and deny admin access.
+- Backend: Add an Internet Identity admin bootstrap method that accepts a secret token and elevates the caller to admin on success, returning a non-trapping failure when the token is unset or incorrect.
+- Backend: Fix admin credential sign-in so it no longer fails due to requiring the caller to already be admin when elevation is successful, or explicitly disable credential-based elevation with a clear non-trapping failure response.
+- Frontend: Remove duplicate React Query and Internet Identity provider initialization so only one QueryClientProvider and one InternetIdentityProvider are active at runtime (without modifying immutable paths).
+- Frontend: Update Admin Sign-In UI to support II login plus a token-based bootstrap form for authenticated non-admin users; on success, refresh admin status and redirect to `/app/admin`.
+- Frontend/Routes: Ensure admin route protection relies on a single, stable admin-status source derived from Internet Identity so `/app/admin` works end-to-end after bootstrap and remains protected for non-admins.
 
-**User-visible outcome:** Admins can sign into `/app/admin` either via the existing Internet Identity flow or by entering username `adminumar` and password `umar9945`; any other credentials are rejected with an English error and admin routes remain blocked.
+**User-visible outcome:** An admin can log in with Internet Identity, bootstrap admin access with a token when needed, and reliably access `/app/admin`; non-admin II users remain blocked from admin pages and data.

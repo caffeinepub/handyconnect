@@ -1,41 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-05T06:49:58.747Z",
-  "summary": "Diff adds a credential-based admin sign-in UI flow and frontend route protection support, and introduces a Motoko migration module to initialize/persist default admin credentials across upgrades. However, the diff summary does not provide direct evidence that the backend exposes the required credential-validation/session endpoints (only frontend hooks reference them and backend shows stored credentials).",
+  "generatedAt": "2026-02-05T10:54:39.680Z",
+  "summary": "Frontend changes implement II-based admin bootstrap UI flow and admin gating via a single React Query hook, and claim to remove duplicate providers. Backend diff evidence is insufficient to confirm required new bootstrap/sign-in endpoints, and it introduces unrequested migration wiring and hardcoded admin credentials.",
   "missing_requirements": [
     {
-      "id": "REQ-44",
-      "requirement": "Implement backend support for verifying the admin username/password and establishing an admin-authenticated session state usable by the frontend (validation method, session check, and admin logout).",
-      "reason": "Frontend code calls backend methods (adminSignInWithCredentials, isAdminLoggedIn, logOutAdmin), but the provided backend/main.mo diff excerpt only shows storage of adminCredentials and does not show any public methods that validate credentials or manage a credential-based admin session state.",
+      "id": "REQ-1",
+      "requirement": "Add a secure Internet Identity (II) admin bootstrap endpoint in the Motoko backend that can elevate the caller to admin using a secret token, without requiring the caller to already be an admin, and without trapping when the token is not configured.",
+      "reason": "Frontend calls a new backend method `bootstrapAdminRole(token)` but the provided backend/main.mo diff portion does not show any new shared method implementing token verification, non-trapping failure when unset, or role elevation.",
       "evidence": [
-        "backend/main.mo",
+        "backend/main.mo (truncated)",
+        "frontend/src/hooks/useQueries.ts"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Fix backend admin credential sign-in so it can elevate a non-admin on successful authentication, or explicitly disable credential-based elevation with a clear non-trapping failure.",
+      "reason": "Frontend still calls `actor.adminSignInWithCredentials(username, password)` and adds a UI query `getAdminSignInPageWithCredentialsCheck()`, but the provided backend/main.mo diff portion does not show changes to credential sign-in behavior (enable elevation or disable with clear failure) nor the new settings/check endpoint.",
+      "evidence": [
+        "backend/main.mo (truncated)",
         "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Admin user-control UI enhancements (principal ID validation, copy-to-clipboard, additional toasts) unrelated to adding admin username/password login.",
-      "reason": "BuildRequest is scoped to adding credential-based admin login and backend support/persistence; it does not request changes to the admin user management panel UX.",
+      "description": "Added a no-op migration module and wired it into the actor upgrade path.",
+      "reason": "The BuildRequest constrained changes to backend/main.mo and allowed adding/updating backend/migration.mo only if state migration is truly required. The diff adds `backend/migration.mo` with 'No migration needed' and wires it in main.mo, which is not requested and not evidenced as necessary.",
       "evidence": [
-        "frontend/src/components/admin/UserControlPanel.tsx"
+        "backend/migration.mo",
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "description": "Top navigation changes to show an Admin link and to perform a combined logout flow calling logOutAdmin and clearing Internet Identity session.",
-      "reason": "While potentially supportive, the BuildRequest does not explicitly ask for nav changes or combined logout behavior; it only requires an admin sign-in option and backend/session support.",
+      "description": "Introduced/modified hardcoded plaintext admin credentials in backend state (e.g., username/password literal).",
+      "reason": "The BuildRequest does not request adding hardcoded default admin credentials; it focuses on fixing credential sign-in behavior or disabling it in favor of II token bootstrap. The diff shows `var adminCredentials : ?AdminCredentials = ?{ username = \"adminumar\"; password = ... }` which is an unrequested and potentially insecure change.",
       "evidence": [
-        "frontend/src/components/nav/TopNav.tsx"
+        "backend/main.mo (truncated)"
       ]
     }
   ],
-  "confidence": 0.62,
+  "confidence": 0.64,
   "changed_files": [
     "backend/main.mo",
     "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/admin/UserControlPanel.tsx",
+    "frontend/src/App.tsx",
     "frontend/src/components/auth/RequireAdmin.tsx",
     "frontend/src/components/nav/TopNav.tsx",
     "frontend/src/hooks/useQueries.ts",
